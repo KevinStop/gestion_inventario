@@ -10,8 +10,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "express": "^4.21.1"
+    "cors": "^2.8.5",
+    "express": "^4.21.1",
+    "google-auth-library": "^9.14.2",
+    "mysql": "^2.18.1"
   }
-  
 }
-
