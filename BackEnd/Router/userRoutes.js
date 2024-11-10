@@ -1,7 +1,7 @@
 // Router/userRoutes.js
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const User = require('../Models/User');
 
 // Obtener todos los usuarios
 router.get('/', (req, res) => {

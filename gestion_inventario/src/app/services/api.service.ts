@@ -9,7 +9,7 @@ import { environment } from '../environments/environment';
 export class ApiService {
     private apiUrl = environment.apiUrl;
 
-    constructor(private http: HttpClient) {}
+    constructor(private http: HttpClient) { }
 
     getUsers(): Observable<any> {
         return this.http.get(`${this.apiUrl}/users`);
@@ -30,5 +30,39 @@ export class ApiService {
     deleteUser(id: string): Observable<any> {
         return this.http.delete(`${this.apiUrl}/users/${id}`);
     }
-    
+
+    // Obtener todos los componentes
+    getComponents(): Observable<any> {
+        return this.http.get(`${this.apiUrl}/components`);
+    }
+
+    // Obtener un componente por ID
+    getComponentById(id: number): Observable<any> {
+        return this.http.get(`${this.apiUrl}/components/${id}`);
+    }
+
+    // Crear un nuevo componente
+    createComponent(componentData: any): Observable<any> {
+        return this.http.post(`${this.apiUrl}/components`, componentData);
+    }
+
+    // Actualizar un componente existente
+    updateComponent(id: number, componentData: any): Observable<any> {
+        return this.http.put(`${this.apiUrl}/components/${id}`, componentData);
+    }
+
+    // Cambiar el estado de un componente (activarlo/desactivarlo)
+    toggleComponentStatus(id: number, isActive: boolean): Observable<any> {
+        return this.http.patch(`${this.apiUrl}/components/${id}`, { is_active: isActive });
+    }
+
+    // Eliminar lógicamente un componente (cambiar estado a inactivo)
+    softDeleteComponent(id: number): Observable<any> {
+        return this.http.patch(`${this.apiUrl}/components/${id}`, { is_active: false });
+    }
+
+    // Eliminar permanentemente un componente
+    deleteComponentPermanently(id: number): Observable<any> {
+        return this.http.delete(`${this.apiUrl}/components/${id}/permanent`);
+    }
 }

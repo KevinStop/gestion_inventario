@@ -43,11 +43,9 @@ app.get(
 );
 
 // Rutas de la API
-/* app.use('/api/users', require('./Router/userRoutes'));
-app.use('/api/components', require('./Router/componentsRoutes')); */
 app.use(require('./Router/userRoutes'));
-/* app.use(require('./Router/componentsRoutes'));
-app.use(require('./Router/loansRoutes'));
+app.use(require('./Router/componentsRoutes'));
+/* app.use(require('./Router/loansRoutes'));
 app.use(require('./Router/requestComponentsRoutes'));
 app.use(require('./Router/requestRoutes')); */
 
