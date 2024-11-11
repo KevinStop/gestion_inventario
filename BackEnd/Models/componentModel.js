@@ -18,7 +18,7 @@ const ComponentModel = {
   getById: (id, callback) => {
     getConnection((err, connection) => {
       if (err) return callback(err);
-      const sql = 'SELECT * FROM components WHERE component_id = ?';
+      const sql = 'SELECT * FROM components WHERE id = ?';
       connection.query(sql, [id], (err, results) => {
         connection.release();
         if (err) return callback(err);
@@ -58,7 +58,7 @@ const ComponentModel = {
           quantity = ?, 
           description = ?, 
           is_active = ? 
-        WHERE component_id = ?`;
+        WHERE id = ?`;
       const values = [
         componentData.name,
         componentData.category,
@@ -79,7 +79,7 @@ const ComponentModel = {
   delete: (id, callback) => {
     getConnection((err, connection) => {
       if (err) return callback(err);
-      const sql = 'UPDATE components SET is_active = FALSE WHERE component_id = ?';
+      const sql = 'UPDATE components SET is_active = FALSE WHERE id = ?';
       connection.query(sql, [id], (err, results) => {
         connection.release();
         if (err) return callback(err);
@@ -93,7 +93,7 @@ const ComponentModel = {
 deletePermanently: (id, callback) => {
   getConnection((err, connection) => {
     if (err) return callback(err);
-    const sql = 'DELETE FROM components WHERE component_id = ?';
+    const sql = 'DELETE FROM components WHERE id = ?';
     connection.query(sql, [id], (err, results) => {
       connection.release();
       if (err) return callback(err);

@@ -1,0 +1,106 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  userId     Int      @id @default(autoincrement()) @map("user_id")
+  googleId   String   @unique @db.VarChar(255) @map("google_id")
+  name       String   @db.VarChar(255)
+  email      String   @unique @db.VarChar(255)
+  role       Role     @default(user)
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  imageUrl   String?  @db.VarChar(255) @map("image_url")  // Aquí se guarda la URL de la imagen de Google
+
+  requests   Request[]
+  loans      Loan[]
+}
+
+enum Role {
+  admin
+  user
+}
+
+model Component {
+  id          Int      @id @default(autoincrement()) @map("ID")
+  name        String   @db.VarChar(255)
+  category    String   @db.VarChar(100)
+  quantity    Int
+  description String?  @db.Text
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  requestDetails RequestDetail[]
+  loans          Loan[]
+}
+
+model Request {
+  requestId   Int      @id @default(autoincrement()) @map("request_id")
+  userId      Int      @map("user_id")
+  status      RequestStatus @default(pending)
+  requestDate DateTime @map("request_date")
+  returnDate  DateTime?
+  description String?
+  adminNotes  String?
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user        User     @relation(fields: [userId], references: [userId])
+  requestDetails RequestDetail[]
+  loans          Loan[]
+}
+
+enum RequestStatus {
+  pending
+  approved
+  rejected
+  loaned
+  returned
+}
+
+model RequestDetail {
+  requestDetailId Int   @id @default(autoincrement()) @map("request_detail_id")
+  requestId       Int   @map("request_id")
+  componentId     Int   @map("component_id")
+  quantity        Int
+
+  request   Request  @relation(fields: [requestId], references: [requestId])
+  component Component @relation(fields: [componentId], references: [id])
+
+}
+
+model Loan {
+  loanId      Int      @id @default(autoincrement()) @map("loan_id")
+  requestId   Int      @map("request_id")
+  userId      Int      @map("user_id")
+  componentId Int      @map("component_id")
+  startDate   DateTime @map("start_date")
+  endDate     DateTime?
+  status      LoanStatus @default(returned)
+
+  request    Request   @relation(fields: [requestId], references: [requestId])
+  user       User      @relation(fields: [userId], references: [userId])
+  component  Component @relation(fields: [componentId], references: [id])
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+}
+
+enum LoanStatus {
+  returned
+  not_returned
+}

@@ -10,5 +10,4 @@ router.put('/components/:id', componentController.updateComponent);
 router.delete('/components/:id', componentController.deleteComponent);
 router.delete('/components/:id/permanent', componentController.deleteComponentPermanently);
 
-
 module.exports = router;

@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
-import { initFlowbite } from 'flowbite';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { ApiService } from '../../../services/api.service';
+import { Modal } from 'flowbite';
+import { ComponentService } from '../../../services/component.service';
+import { ComponentElectronic as ComponentModel } from '../../../models/component-electronic.model';
 
 @Component({
   selector: 'app-electronic-component',
@@ -10,48 +11,80 @@ import { ApiService } from '../../../services/api.service';
   imports: [FormsModule, CommonModule],
   templateUrl: './electronic-component.component.html',
   styleUrls: ['./electronic-component.component.css'],
-  providers: [ApiService]
 })
 export default class ElectronicComponentComponent implements OnInit {
-  componentData = {
-    name: '',
-    category: '',
-    quantity: 0,
-    description: '',
-    is_active: false,
-    createdAt: null,
-    updatedAt: null 
-  };
+  createModal?: Modal;
+  successModal?: Modal;
+  components: ComponentModel[] = [];
+  newComponent: ComponentModel = new ComponentModel(
+    0, '', '', 0, '', true, new Date(), new Date()
+  );
 
-  components: any[] = [];
-
-  constructor(private ApiService: ApiService) {}
+  constructor(private componentService: ComponentService) {}
 
   ngOnInit(): void {
-    initFlowbite();
+    const createModalElement = document.querySelector('#createModal') as HTMLElement;
+    this.createModal = new Modal(createModalElement);
+
+    const successModalElement = document.querySelector('#successModal') as HTMLElement;
+    this.successModal = new Modal(successModalElement);
+
+    const openButton = document.querySelector('#createModalButton') as HTMLElement;
+    openButton.addEventListener('click', () => {
+      this.createModal?.toggle();
+    });
+
+    const closeButton = createModalElement.querySelector('[data-modal-toggle="defaultModal"]') as HTMLElement;
+    closeButton.addEventListener('click', () => {
+      this.createModal?.hide();
+    });
+
+    const continueButton = document.querySelector('#continueButton') as HTMLElement;
+    continueButton.addEventListener('click', () => {
+      this.successModal?.hide();
+    });
+
     this.loadComponents();
   }
 
-  // Método para cargar los componentes desde la API
-  loadComponents() {
-    this.ApiService.getComponents().subscribe({
-      next: (response) => {
+  loadComponents(): void {
+    this.componentService.getComponents().subscribe(
+      (response) => {
         this.components = response;
       },
-      error: (error) => {
-        console.error('Error al obtener los componentes', error);
+      (error) => {
+        console.error('Error al cargar los componentes:', error);
       }
-    });
+    );
   }
 
-  createComponent() {
-    this.ApiService.createComponent(this.componentData).subscribe({
-      next: response => {
-        console.log('Componente creado:', response);
+  createComponent(): void {
+    this.componentService.createComponent(this.newComponent).subscribe(
+      (response) => {
+        this.successModal?.toggle();
+        this.loadComponents();
+        this.resetNewComponent();
+        this.successModal?.show();
+        this.createModal?.hide();
       },
-      error: error => {
+      (error) => {
         console.error('Error al crear el componente:', error);
       }
-    });
+    );
+  }
+
+  deleteComponent(componentId: number): void {
+    this.componentService.deleteComponent(componentId).subscribe(
+      (response) => {
+        this.loadComponents();
+      },
+      (error) => {
+        console.error('Error al eliminar el componente:', error);
+      }
+    );
+  }
+
+  resetNewComponent(): void {
+    this.newComponent = new ComponentModel(0, '', '', 0, '', true, new Date(), new Date());
   }
 }
