@@ -18,6 +18,10 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/admin/loans/loans.component')
             },
             {
+                path: 'componentList',
+                loadComponent: () => import('./components/component-list/component-list.component')
+            },
+            {
                 path: '',
                 redirectTo: 'electronicComponent',
                 pathMatch: 'full'

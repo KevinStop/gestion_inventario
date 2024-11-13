@@ -3,6 +3,7 @@ const passport = require('passport');
 const session = require('express-session');
 require('dotenv').config();
 require('./config/passportConfig');
+const path = require('path');
 
 const app = express();
 
@@ -11,6 +12,10 @@ const requestRoutes = require('./routes/requestRoutes');
 const requestDetailRoutes = require('./routes/requestDetailRoutes');
 const userRoutes = require('./routes/userRoutes');
 const loanRoutes = require('./routes/loanRoutes');
+const categoryRoutes = require('./routes/categoryRoutes');
+
+// Configuración de archivos estáticos para la carpeta 'uploads'
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 const PORT = process.env.PORT || 3000;
 
@@ -18,9 +23,9 @@ app.use(express.json());
 const cors = require('cors');
 
 app.use(cors({
-  origin: 'http://localhost:4200',  // URL del frontend
+  origin: 'http://localhost:4200',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  credentials: true,  // Permite el manejo de cookies
+  credentials: true,
 }));
 
 // Configuración de la sesión
@@ -74,6 +79,7 @@ app.use('/users', userRoutes);
 app.use('/requests', requestRoutes);
 app.use('/request-details', requestDetailRoutes);
 app.use('/loans', loanRoutes);
+app.use('/categories', categoryRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);

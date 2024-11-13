@@ -1,4 +1,6 @@
 import { Component } from '@angular/core';
+import { initFlowbite } from 'flowbite';
+
 
 @Component({
   selector: 'app-loans',
@@ -8,5 +10,9 @@ import { Component } from '@angular/core';
   styleUrl: './loans.component.css'
 })
 export default class LoansComponent {
+
+  ngOnInit(): void {
+    initFlowbite();
+  }
 
 }

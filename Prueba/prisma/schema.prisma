@@ -34,23 +34,32 @@ enum Role {
 }
 
 model Component {
-  id          Int      @id @default(autoincrement()) @map("ID")
+  id          Int      @id @default(autoincrement())
   name        String   @db.VarChar(255)
-  category    String   @db.VarChar(100)
   quantity    Int
   description String?  @db.Text
-  isActive    Boolean  @default(true) @map("is_active")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  imageUrl    String?
+  categoryId  Int
+  
+  category    Category @relation(fields: [categoryId], references: [id])
 
   requestDetails RequestDetail[]
   loans          Loan[]
 }
 
+model Category {
+  id        Int         @id @default(autoincrement())
+  name      String      @unique
+  components Component[]
+}
+
 model Request {
   requestId   Int      @id @default(autoincrement()) @map("request_id")
   userId      Int      @map("user_id")
-  status      RequestStatus @default(pending)
+  status      RequestStatus @default(pendiente)
   requestDate DateTime @map("request_date")
   returnDate  DateTime?
   description String?
@@ -65,11 +74,11 @@ model Request {
 }
 
 enum RequestStatus {
-  pending
-  approved
-  rejected
-  loaned
-  returned
+  pendiente
+  aprobado
+  rechazado
+  prestado
+  devuelto
 }
 
 model RequestDetail {
@@ -90,7 +99,7 @@ model Loan {
   componentId Int      @map("component_id")
   startDate   DateTime @map("start_date")
   endDate     DateTime?
-  status      LoanStatus @default(returned)
+  status      LoanStatus @default(devuelto)
 
   request    Request   @relation(fields: [requestId], references: [requestId])
   user       User      @relation(fields: [userId], references: [userId])
@@ -101,6 +110,6 @@ model Loan {
 }
 
 enum LoanStatus {
-  returned
-  not_returned
+  devuelto
+  no_devuelto
 }
