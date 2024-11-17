@@ -18,19 +18,15 @@ export default class ElectronicComponentComponent implements OnInit {
   components: any[] = [];
   isDeleteModalOpen: boolean = false;
   componentIdToDelete: number | null = null;
-  newComponent: any = { name: '', categoryId: '', quantity: 0, isActive: true }; // Cambiar 'category' a 'categoryId'
+  newComponent: any = { name: '', categoryId: '', quantity: 0 };
   selectedImage: File | undefined = undefined;
   imagePreviewUrl: string | undefined = undefined;
-  selectedComponent: any = { name: '', categoryId: '', description: '', isActive: true }; // Cambiar 'category' a 'categoryId'
+  selectedComponent: any = { name: '', categoryId: '', description: '', isActive: false };
   searchTerm: string = '';
   selectedCategories: string[] = [];
   categories: any[] = [];
-
-  // Variables de paginación
-  currentPage: number = 1;
-  limit: number = 10;
-  totalComponents: number = 0;
-  totalPages: number = 1;
+  newCategory: any = { name: '' };
+  successMessage: string = '';
 
   constructor(private componentService: ComponentService, private categoryService: CategoryService) {}
 
@@ -57,38 +53,32 @@ export default class ElectronicComponentComponent implements OnInit {
     const closeButton = createModalElement.querySelector('[data-modal-toggle="defaultModal"]') as HTMLElement;
     closeButton.addEventListener('click', () => {
       this.createModal?.hide();
+      this.removeImage();
     });
 
     const continueButton = document.querySelector('#continueButton') as HTMLElement;
     continueButton.addEventListener('click', () => {
       this.successModal?.hide();
     });
+    
   }
 
   getComponents(): void {
-    this.componentService.getComponents(this.currentPage, this.limit).subscribe(
+    this.componentService.getComponents().subscribe(
       (data) => {
         this.components = data.components;
-        this.totalComponents = data.totalComponents;
-        this.totalPages = data.totalPages;
       },
       (error) => {
         console.error('Error al obtener los componentes:', error);
       }
     );
-  }
-
-  changePage(page: number): void {
-    if (page < 1 || page > this.totalPages) return;
-    this.currentPage = page;
-    this.getComponents();
-  }
+  }  
 
   searchComponents(): void {
     if (this.searchTerm.trim()) {
       this.componentService.searchComponentsByName(this.searchTerm).subscribe(
         (data) => {
-          this.components = data;
+          this.components = data.components || [];
         },
         (error) => {
           console.error('Error al buscar los componentes:', error);
@@ -97,7 +87,7 @@ export default class ElectronicComponentComponent implements OnInit {
     } else {
       this.getComponents();
     }
-  }
+  }  
 
   onImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -120,18 +110,17 @@ export default class ElectronicComponentComponent implements OnInit {
   }
 
   createComponent() {
-    console.log('Componente a crear:', this.newComponent);
-    console.log('Archivo de imagen:', this.selectedImage);
-
     this.componentService.createComponent(this.newComponent, this.selectedImage).subscribe(
       (response) => {
         console.log('Componente creado:', response);
         this.getComponents();
         this.createModal?.hide();
-        this.successModal?.show();
+        this.successMessage = 'Componente creado satisfactoriamente.';
+        setTimeout(() => {
+          this.successModal?.show();
+        }, 300);
       },
       (error) => {
-        console.error('Error al crear el componente:', error);
         alert('Hubo un error al intentar crear el componente');
       }
     );
@@ -152,7 +141,12 @@ export default class ElectronicComponentComponent implements OnInit {
           if (index !== -1) {
             this.components[index] = data;
           }
-          alert('Componente actualizado con éxito');
+          this.getComponents();
+          this.closeDrawer();
+          this.successMessage = 'Componente actualizado satisfactoriamente.';
+          setTimeout(() => {
+            this.successModal?.show();
+          }, 300);
         },
         (error) => {
           console.error('Error al actualizar el componente:', error);
@@ -212,4 +206,30 @@ export default class ElectronicComponentComponent implements OnInit {
     }
     this.getFilteredComponents();
   }
+
+  closeDrawer(): void {
+    const drawer = document.getElementById('drawer-update-product') as HTMLElement;
+    drawer.classList.add('-translate-x-full');
+    drawer.classList.remove('translate-x-0');
+  }
+
+  // Método para crear la categoría
+  createCategory(): void {
+    this.categoryService.createCategory(this.newCategory).subscribe(
+      (response) => {
+        console.log('Categoría creada:', response);
+        this.categories.push(response);
+        this.newCategory.name = '';
+        this.successMessage = 'Categoría creada satisfactoriamente.';
+        setTimeout(() => {
+          this.successModal?.show();
+        }, 300);
+      },
+      (error) => {
+        console.error('Error al crear la categoría:', error);
+      }
+    );
+  }
+
+
 }

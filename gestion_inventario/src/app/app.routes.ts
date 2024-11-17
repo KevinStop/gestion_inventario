@@ -18,8 +18,12 @@ export const routes: Routes = [
                 loadComponent: () => import('./pages/admin/loans/loans.component')
             },
             {
-                path: 'componentList',
-                loadComponent: () => import('./components/component-list/component-list.component')
+                path: 'viewComponents',
+                loadComponent: () => import('./pages/user/view-components/view-components.component')
+            },
+            {
+                path: 'loansSummary',
+                loadComponent: () => import('./pages/user/loans-summary/loans-summary.component')
             },
             {
                 path: '',

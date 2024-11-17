@@ -11,7 +11,7 @@ const createComponent = async (data) => {
       isActive: data.isActive === 'true',
       imageUrl: data.imageUrl || null,
       category: {
-        connect: { id: parseInt(data.categoryId) }  // Conectamos con la categoría existente
+        connect: { id: parseInt(data.categoryId) }
       }
     };
     const component = await prisma.component.create({
@@ -24,21 +24,17 @@ const createComponent = async (data) => {
   }
 };
 
-// Obtener todos los componentes con paginación
-const getAllComponents = async (page = 1, limit = 10) => {
+// Obtener todos los componentes sin paginación
+const getAllComponents = async () => {
   try {
-    const skip = (page - 1) * limit;
     const components = await prisma.component.findMany({
-      include: { category: true },
-      skip: skip,
-      take: limit,
+      include: { category: true }
     });
     return components;
   } catch (error) {
-    throw new Error('Error al obtener los componentes con paginación');
+    throw new Error('Error al obtener los componentes');
   }
 };
-
 
 // Obtener un componente por su ID y su categoría
 const getComponentById = async (id) => {
@@ -150,7 +146,6 @@ const getComponentCount = async () => {
   }
 };
 
-
 module.exports = {
   createComponent,
   getAllComponents,
@@ -159,5 +154,5 @@ module.exports = {
   deleteComponent,
   searchComponentsByName,
   filterComponentsByCategories,
-  getComponentCount
+  getComponentCount,
 };
