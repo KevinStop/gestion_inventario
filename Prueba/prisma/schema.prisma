@@ -15,14 +15,15 @@ datasource db {
 
 model User {
   userId     Int      @id @default(autoincrement()) @map("user_id")
-  googleId   String   @unique @db.VarChar(255) @map("google_id")
+  googleId   String?  @unique @db.VarChar(255) @map("google_id")
   name       String   @db.VarChar(255)
   email      String   @unique @db.VarChar(255)
+  password   String?  @db.VarChar(255)
   role       Role     @default(user)
   isActive   Boolean  @default(true) @map("is_active")
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
-  imageUrl   String?  @db.VarChar(255) @map("image_url")  // Aquí se guarda la URL de la imagen de Google
+  imageUrl   String?  @db.VarChar(255) @map("image_url")
 
   requests   Request[]
   loans      Loan[]

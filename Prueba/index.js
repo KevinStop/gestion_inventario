@@ -47,12 +47,14 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 // Ruta de callback después de que Google nos redirija
 app.get(
   '/auth/google/callback',
-  passport.authenticate('google', {
-    failureRedirect: '/',
-  }),
+  passport.authenticate('google', { failureRedirect: '/' }),
   (req, res) => {
-    // Redirigimos al usuario a su página principal o dashboard
-    res.redirect('/profile');
+    if (!req.user) {
+      return res.status(401).json({ message: 'Autenticación fallida' });
+    }
+
+    // Redirigir con el token
+    res.redirect(`http://localhost:4200/login-success?token=${req.user.token}`);
   }
 );
 
@@ -61,7 +63,7 @@ app.get('/profile', (req, res) => {
   if (!req.user) {
     return res.status(401).json({ message: 'No estás autenticado' });
   }
-  res.json(req.user); // Retornamos los datos del usuario autenticado
+  res.json(req.user);
 });
 
 // Ruta para cerrar sesión

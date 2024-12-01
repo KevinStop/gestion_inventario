@@ -1,56 +1,83 @@
-// src/app/services/user.service.ts
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
   providedIn: 'root',
 })
 export class UserService {
-  private apiUrl = `${environment.apiUrl}/users`; 
-  private oauthUrl = `${environment.apiUrl}/auth/google`;
+  private apiUrl = `${environment.apiUrl}/users`;
 
   constructor(private http: HttpClient) {}
 
-  // Obtener todos los usuarios
-  getUsers(): Observable<any> {
-    return this.http.get<any>(this.apiUrl);
+  // Obtener el rol del usuario desde el token JWT
+  getUserRole(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    const decodedToken: any = jwtDecode(token);
+    return decodedToken.role;
   }
 
-  // Obtener un usuario por ID
-  getUserById(id: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  // Obtener el nombre de usuario desde el token JWT
+  getUsername(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
+
+    const decodedToken: any = jwtDecode(token);
+    return decodedToken.username;
   }
 
-  // Crear un nuevo usuario
-  createUser(userData: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, userData);
+  // Registro de usuario
+  register(userData: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/register`, userData);
   }
 
-  // Actualizar un usuario
-  updateUser(id: number, userData: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, userData);
+  // Login de usuario (con email y password)
+  login(credentials: { email: string; password: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials);
   }
 
-  // Eliminar un usuario
-  deleteUser(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`);
-  }
-
-  // Autenticación con Google OAuth (método para obtener el token de acceso de Google)
+  // Autenticación con Google OAuth
   googleLogin(idToken: string): Observable<any> {
-    return this.http.post<any>(this.oauthUrl, { token: idToken });
+    return this.http.post<any>(`${this.apiUrl}/auth/google/callback`, { token: idToken });
   }
 
-  // Método para verificar si el usuario está autenticado (si tienes alguna lógica del frontend)
+  // Guardar token en localStorage (tras login exitoso)
+  saveToken(token: string): void {
+    localStorage.setItem('auth_token', token);
+  }
+
+  // Obtener token desde localStorage
+  getToken(): string | null {
+    return localStorage.getItem('auth_token');
+  }
+
+  // Eliminar token de localStorage (logout)
+  logout(): void {
+    localStorage.removeItem('auth_token');
+  }
+
+  // Verificar si el usuario está autenticado
   isAuthenticated(): boolean {
-    // Verifica en el almacenamiento local si el usuario tiene un token válido o alguna otra condición
-    return !!localStorage.getItem('auth_token');  // Por ejemplo, revisando el token guardado en localStorage
+    const token = this.getToken();
+    if (!token) {
+      return false;
+    }
+
+    // Decodificar el token y verificar si está expirado
+    const decodedToken: any = jwtDecode(token);
+    const currentTime = Date.now() / 1000; // El tiempo actual en segundos
+
+    // Verificar si el token ha expirado
+    return decodedToken.exp > currentTime;
   }
 
-  // Método para obtener el token de autenticación (si se necesita en otras partes del frontend)
-  getAuthToken(): string | null {
-    return localStorage.getItem('auth_token');  // Recupera el token desde localStorage
+  // Verificar si el usuario tiene un rol específico
+  hasRole(role: string): boolean {
+    const userRole = this.getUserRole();
+    return userRole === role;
   }
 }
