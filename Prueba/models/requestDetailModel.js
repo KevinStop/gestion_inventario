@@ -1,4 +1,3 @@
-// models/requestDetailModel.js
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
@@ -58,7 +57,7 @@ const updateRequestDetail = async (id, data) => {
   }
 };
 
-// Eliminar un detalle de solicitud por ID
+// Eliminar un detalle de solicitud por ID (cuando se rechaza o se cancela una solicitud)
 const deleteRequestDetail = async (id) => {
   try {
     const deletedRequestDetail = await prisma.requestDetail.delete({

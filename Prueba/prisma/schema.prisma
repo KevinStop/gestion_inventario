@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -61,7 +55,6 @@ model Request {
   requestId   Int      @id @default(autoincrement()) @map("request_id")
   userId      Int      @map("user_id")
   status      RequestStatus @default(pendiente)
-  requestDate DateTime @map("request_date")
   returnDate  DateTime?
   description String?
   adminNotes  String?
@@ -90,7 +83,6 @@ model RequestDetail {
 
   request   Request  @relation(fields: [requestId], references: [requestId])
   component Component @relation(fields: [componentId], references: [id])
-
 }
 
 model Loan {

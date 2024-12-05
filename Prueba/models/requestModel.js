@@ -2,14 +2,36 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 // Crear una solicitud
-const createRequest = async (data) => {
+const createRequest = async (data, requestDetails) => {
+  if (!data.userId) {
+    throw new Error('El campo userId es obligatorio para crear una solicitud.');
+  }
+
+  console.log('Datos para crear solicitud:', data, requestDetails);
+
   try {
     const request = await prisma.request.create({
-      data: data,
+      data: {
+        user: {
+          connect: { userId: data.userId }, // Conecta al usuario por userId
+        },
+        status: data.status || 'pendiente', // Estado por defecto
+        description: data.description, // Descripción de la solicitud
+        requestDetails: {
+          create: requestDetails.map(detail => ({
+            component: {
+              connect: { id: detail.componentId }, // Conecta el componente por ID
+            },
+            quantity: detail.quantity, // Cantidad del componente
+          })),
+        },
+      },
     });
+
     return request;
   } catch (error) {
-    throw new Error('Error al crear la solicitud');
+    console.error('Error en createRequest:', error);
+    throw new Error('Error al crear la solicitud: ' + error.message);
   }
 };
 
@@ -18,7 +40,8 @@ const getAllRequests = async () => {
   try {
     const requests = await prisma.request.findMany({
       include: {
-        user: true, // Incluye los datos del usuario relacionado
+        user: true, // Incluye los datos del usuario
+        requestDetails: true, // Incluye los detalles de los componentes solicitados
       },
     });
     return requests;
@@ -33,7 +56,8 @@ const getRequestById = async (id) => {
     const request = await prisma.request.findUnique({
       where: { requestId: Number(id) },
       include: {
-        user: true, // Incluye los datos del usuario relacionado
+        user: true, // Incluye los datos del usuario
+        requestDetails: true, // Incluye los detalles de los componentes solicitados
       },
     });
     return request;
@@ -42,13 +66,45 @@ const getRequestById = async (id) => {
   }
 };
 
-// Actualizar una solicitud por ID
+// Actualizar una solicitud por ID (aceptar/rechazar solicitud)
 const updateRequest = async (id, data) => {
   try {
+    // Obtener la solicitud antes de actualizarla para ver los detalles
+    const request = await prisma.request.findUnique({
+      where: { requestId: Number(id) },
+      include: {
+        requestDetails: true, // Incluye los detalles de los componentes solicitados
+      },
+    });
+
+    // Si la solicitud es rechazada, eliminamos la solicitud
+    if (data.status === 'rechazada') {
+      await prisma.request.delete({
+        where: { requestId: Number(id) },
+      });
+      return { message: "Solicitud rechazada y eliminada" };
+    }
+
+    // Si la solicitud es aceptada, actualizamos las cantidades de los componentes
+    if (data.status === 'aceptada' && request.status !== 'aceptada') {
+      for (const detail of request.requestDetails) {
+        await prisma.component.update({
+          where: { id: detail.componentId },
+          data: {
+            quantity: {
+              decrement: detail.quantity, // Reducir la cantidad de los componentes
+            },
+          },
+        });
+      }
+    }
+
+    // Actualizar el estado de la solicitud
     const updatedRequest = await prisma.request.update({
       where: { requestId: Number(id) },
       data: data,
     });
+
     return updatedRequest;
   } catch (error) {
     throw new Error('Error al actualizar la solicitud');
@@ -67,10 +123,46 @@ const deleteRequest = async (id) => {
   }
 };
 
+// Finalizar una solicitud y reponer los componentes
+const finalizeRequest = async (id) => {
+  try {
+    // Obtener la solicitud para ver los detalles de los componentes
+    const request = await prisma.request.findUnique({
+      where: { requestId: Number(id) },
+      include: {
+        requestDetails: true,
+      },
+    });
+
+    // Reponer los componentes cuando la solicitud es finalizada
+    for (const detail of request.requestDetails) {
+      await prisma.component.update({
+        where: { id: detail.componentId },
+        data: {
+          quantity: {
+            increment: detail.quantity, // Reponer la cantidad de los componentes
+          },
+        },
+      });
+    }
+
+    // Actualizar el estado de la solicitud a finalizada
+    const updatedRequest = await prisma.request.update({
+      where: { requestId: Number(id) },
+      data: { status: 'finalizada' },
+    });
+
+    return updatedRequest;
+  } catch (error) {
+    throw new Error('Error al finalizar la solicitud');
+  }
+};
+
 module.exports = {
   createRequest,
   getAllRequests,
   getRequestById,
   updateRequest,
   deleteRequest,
+  finalizeRequest,
 };

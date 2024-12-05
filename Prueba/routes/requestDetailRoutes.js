@@ -1,3 +1,4 @@
+// routes/requestDetailRoutes.js
 const express = require('express');
 const router = express.Router();
 const requestDetailController = require('../controllers/requestDetailController');

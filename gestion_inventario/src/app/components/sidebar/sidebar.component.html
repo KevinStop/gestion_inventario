@@ -116,8 +116,8 @@
       </li>
     </ul>
     <ul class="pt-5 mt-5 space-y-2 border-t border-gray-200 dark:border-gray-700">
-      <li>
-        <a routerLink="/electronicComponent"
+      <li *ngIf="isAdmin()">
+        <a routerLink="/home/electronicComponent"
           class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg transition duration-75 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group">
           <svg aria-hidden="true"
             class="flex-shrink-0 w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -129,8 +129,8 @@
           <span class="ml-3">Componentes Electrónicos</span>
         </a>
       </li>
-      <li>
-        <a routerLink="/request"
+      <li *ngIf="isAdmin()">
+        <a routerLink="/home/request"
           class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg transition duration-75 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group">
           <svg aria-hidden="true"
             class="flex-shrink-0 w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -143,8 +143,8 @@
           <span class="ml-3">Solicitudes</span>
         </a>
       </li>
-      <li>
-        <a routerLink="/loans"
+      <li *ngIf="isAdmin()">
+        <a routerLink="/home/loans"
           class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg transition duration-75 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group">
           <svg
             class="flex-shrink-0 w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -157,8 +157,8 @@
           <span class="ml-3">Registro de Préstamos</span>
         </a>
       </li>
-      <li>
-        <a routerLink="/viewComponents"
+      <li *ngIf="isUser()">
+        <a routerLink="/home/viewComponents"
           class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg transition duration-75 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group">
           <svg
             class="flex-shrink-0 w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -168,11 +168,11 @@
               clip-rule="evenodd" />
             <path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 1 1 0 4H4a2 2 0 0 1-2-2Z" />
           </svg>
-          <span class="ml-3">Solicitar Componentes</span>
+          <span class="ml-3">Componentes electrónicos</span>
         </a>
       </li>
-      <li>
-        <a routerLink="/loansSummary"
+      <li *ngIf="isUser()">
+        <a routerLink="/home/loansSummary"
           class="flex items-center p-2 text-base font-normal text-gray-900 rounded-lg transition duration-75 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-white group">
           <svg
             class="flex-shrink-0 w-6 h-6 text-gray-400 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -182,7 +182,7 @@
               clip-rule="evenodd" />
             <path d="M2 6a2 2 0 0 1 2-2h16a2 2 0 1 1 0 4H4a2 2 0 0 1-2-2Z" />
           </svg>
-          <span class="ml-3">Resumen Prestamos</span>
+          <span class="ml-3">Solicitud de prestamo</span>
         </a>
       </li>
     </ul>

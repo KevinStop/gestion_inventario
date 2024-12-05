@@ -112,6 +112,26 @@ const deactivateUser = async (req, res) => {
   }
 };
 
+// Extender sesión (renovar el token)
+const extendSession = async (req, res) => {
+  try {
+    const user = req.user; // El usuario autenticado
+
+    // Generar un nuevo token JWT con expiración de 1 hora
+    const token = jwt.sign(
+      { userId: user.userId, email: user.email, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '1h' }
+    );
+
+    // Devolver el nuevo token
+    res.status(200).json({ token });
+  } catch (error) {
+    console.error('Error al extender la sesión:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -119,4 +139,5 @@ module.exports = {
   getUserById,
   updateUser,
   deactivateUser,
+  extendSession,
 };

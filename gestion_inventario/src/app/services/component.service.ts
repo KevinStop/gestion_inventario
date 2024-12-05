@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { UserService } from '../services/user.service';
 
 @Injectable({
   providedIn: 'root',
@@ -9,7 +10,7 @@ import { environment } from '../../environments/environment';
 export class ComponentService {
   private apiUrl = `${environment.apiUrl}/components`;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private userService: UserService) { }
 
   // Obtener todos los componentes (sin paginación)
   getComponents(): Observable<any> {
@@ -23,6 +24,8 @@ export class ComponentService {
 
   // Crear un nuevo componente
   createComponent(component: any, imageFile?: File): Observable<any> {
+    const token = this.userService.getToken();
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
     const formData = new FormData();
     formData.append('name', component.name);
     formData.append('categoryId', component.categoryId.toString());
@@ -30,11 +33,13 @@ export class ComponentService {
     if (component.description) formData.append('description', component.description);
     if (imageFile) formData.append('image', imageFile);
 
-    return this.http.post<any>(this.apiUrl, formData);
+    return this.http.post<any>(this.apiUrl, formData, { headers });
   }
 
   // Actualizar un componente
   updateComponent(id: number, component: any, imageFile?: File): Observable<any> {
+    const token = this.userService.getToken();
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
     const formData = new FormData();
     formData.append('name', component.name);
     formData.append('categoryId', component.categoryId.toString());
@@ -43,12 +48,15 @@ export class ComponentService {
     formData.append('isActive', component.isActive.toString());
     if (imageFile) formData.append('image', imageFile);
 
-    return this.http.put<any>(`${this.apiUrl}/${id}`, formData);
+    return this.http.put<any>(`${this.apiUrl}/${id}`, formData, { headers });
   }
 
   // Eliminar un componente
   deleteComponent(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    const token = this.userService.getToken();
+    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  
+    return this.http.delete<any>(`${this.apiUrl}/${id}`, { headers });
   }
 
   // Buscar componentes por nombre

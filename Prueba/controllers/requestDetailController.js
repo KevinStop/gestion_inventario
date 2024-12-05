@@ -1,14 +1,21 @@
-// controllers/requestDetailController.js
 const requestDetailModel = require('../models/requestDetailModel');
+const componentModel = require('../models/componentModel'); 
 
 // Crear un detalle de solicitud
 const createRequestDetail = async (req, res) => {
   try {
-    const data = req.body;
-    const requestDetail = await requestDetailModel.createRequestDetail(data);
-    res.status(201).json(requestDetail);
+    const { requestId, componentId, quantity } = req.body;
+
+    // Crear el detalle de solicitud
+    const newRequestDetail = await requestDetailModel.createRequestDetail({
+      requestId,
+      componentId,
+      quantity,
+    });
+
+    res.status(201).json(newRequestDetail);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
@@ -18,44 +25,57 @@ const getAllRequestDetails = async (req, res) => {
     const requestDetails = await requestDetailModel.getAllRequestDetails();
     res.status(200).json(requestDetails);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
 // Obtener un detalle de solicitud por ID
 const getRequestDetailById = async (req, res) => {
-  const { id } = req.params;
   try {
+    const { id } = req.params;
     const requestDetail = await requestDetailModel.getRequestDetailById(id);
     if (!requestDetail) {
-      return res.status(404).json({ error: 'Detalle de solicitud no encontrado' });
+      return res.status(404).json({ message: 'Detalle de solicitud no encontrado' });
     }
     res.status(200).json(requestDetail);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
 // Actualizar un detalle de solicitud por ID
 const updateRequestDetail = async (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
   try {
-    const updatedRequestDetail = await requestDetailModel.updateRequestDetail(id, data);
+    const { id } = req.params;
+    const { quantity } = req.body;
+
+    // Actualizar el detalle de solicitud
+    const updatedRequestDetail = await requestDetailModel.updateRequestDetail(id, { quantity });
+
+    // Si la solicitud ha sido aceptada, actualizar la cantidad del componente
+    if (updatedRequestDetail.status === 'aceptada') {
+      await componentModel.updateComponentQuantity(updatedRequestDetail.componentId, -quantity);
+    }
+
     res.status(200).json(updatedRequestDetail);
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 
-// Eliminar un detalle de solicitud por ID
+// Eliminar un detalle de solicitud por ID (cuando la solicitud es rechazada o cancelada)
 const deleteRequestDetail = async (req, res) => {
-  const { id } = req.params;
   try {
+    const { id } = req.params;
     const deletedRequestDetail = await requestDetailModel.deleteRequestDetail(id);
-    res.status(200).json(deletedRequestDetail);
+
+    // Reponer la cantidad del componente si la solicitud es rechazada o cancelada
+    const requestDetail = await requestDetailModel.getRequestDetailById(id);
+    await componentModel.updateComponentQuantity(requestDetail.componentId, requestDetail.quantity);
+
+    res.status(200).json({ message: 'Detalle de solicitud eliminado correctamente' });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 

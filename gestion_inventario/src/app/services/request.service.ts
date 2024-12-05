@@ -1,8 +1,8 @@
-// src/app/services/request.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
+import { UserService } from '../services/user.service';
 
 @Injectable({
   providedIn: 'root',
@@ -10,7 +10,7 @@ import { environment } from '../../environments/environment';
 export class RequestService {
   private apiUrl = `${environment.apiUrl}/requests`;  // URL base para la API de requests
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private userService: UserService) { }
 
   // Obtener todas las solicitudes
   getRequests(): Observable<any> {
@@ -22,12 +22,26 @@ export class RequestService {
     return this.http.get<any>(`${this.apiUrl}/${id}`);
   }
 
-  // Crear una nueva solicitud
-  createRequest(requestData: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, requestData);
+  // Crear una solicitud
+  createRequest(requestData: any, requestDetails: any[]): Observable<any> {
+    const userId = this.userService.getUserId();
+    if (!userId) {
+      console.error('Error: Usuario no autenticado');
+      throw new Error('Usuario no autenticado');
+    }
+  
+    const body = {
+      userId,  // Enviar el userId
+      requestDetails,
+      ...requestData,  // Si hay otros datos de la solicitud
+    };
+  
+    console.log('Payload enviado al backend:', body);
+  
+    return this.http.post<any>(`${this.apiUrl}/`, body);  // Enviar la solicitud al backend
   }
 
-  // Actualizar una solicitud
+  // Actualizar una solicitud (aceptar, rechazar)
   updateRequest(id: number, requestData: any): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${id}`, requestData);
   }
@@ -37,23 +51,34 @@ export class RequestService {
     return this.http.delete<any>(`${this.apiUrl}/${id}`);
   }
 
-  // Aprobar una solicitud (esto puede ser un cambio de estado)
-  approveRequest(id: number): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/approve`, {});  // Enviar la solicitud con estado 'approved'
+  // Obtener los componentes seleccionados desde localStorage
+  getSelectedComponents(): any {
+    const components = localStorage.getItem('selectedComponents');
+    return components ? JSON.parse(components) : {};
   }
 
-  // Rechazar una solicitud (esto puede ser un cambio de estado)
-  rejectRequest(id: number): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/reject`, {});  // Enviar la solicitud con estado 'rejected'
+  // Almacenar los componentes seleccionados en localStorage
+  setSelectedComponents(components: any): void {
+    localStorage.setItem('selectedComponents', JSON.stringify(components));
   }
 
-  // Cambiar el estado de la solicitud a "loaned" (cuando se aprueba y se realiza el préstamo)
-  loanRequest(id: number): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/loan`, {});  // Enviar la solicitud con estado 'loaned'
+  addSelectedComponentToStorage(component: any, quantity: number): void {
+    const userId = this.userService.getUserId();  // Verificar si el usuario está autenticado
+    if (!userId) {
+      console.error('No se puede almacenar en localStorage, el usuario no está autenticado.');
+      return;  // Si no está autenticado, no se guarda nada
+    }
+    let selectedComponents = JSON.parse(localStorage.getItem('selectedComponents') || '[]');
+    if (!Array.isArray(selectedComponents)) {
+      selectedComponents = [];
+    }
+    const index = selectedComponents.findIndex((item: any) => item.id === component.id);
+    if (index !== -1) {
+      selectedComponents[index].quantity = quantity;
+    } else {
+      selectedComponents.push({ ...component, quantity });
+    }
+    localStorage.setItem('selectedComponents', JSON.stringify(selectedComponents));
   }
-
-  // Cambiar el estado de la solicitud a "returned" (cuando se devuelve el componente)
-  returnRequest(id: number): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/return`, {});  // Enviar la solicitud con estado 'returned'
-  }
+  
 }

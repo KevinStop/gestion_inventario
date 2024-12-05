@@ -1,21 +1,22 @@
 import { Component, OnInit } from '@angular/core';
 import { UserService } from '../../services/user.service';
-import { Router } from '@angular/router';  // Importar Router para redirigir
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
 export class SidebarComponent implements OnInit {
-  userRole: string | null = null;
 
   constructor(private userService: UserService, private router: Router) {}
 
   ngOnInit(): void {
-    this.userRole = this.userService.getUserRole();
   }
 
   // Método para cerrar sesión
@@ -24,11 +25,12 @@ export class SidebarComponent implements OnInit {
     this.router.navigate(['/']);
   }
 
+  // Métodos para verificar el rol
   isAdmin(): boolean {
-    return this.userService.hasRole('admin');
+    return this.userService.isAdmin();
   }
 
   isUser(): boolean {
-    return this.userService.hasRole('user');
+    return this.userService.isUser();
   }
 }
