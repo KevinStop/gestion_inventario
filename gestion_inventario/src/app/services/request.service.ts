@@ -4,11 +4,17 @@ import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { UserService } from '../services/user.service';
 
+interface SelectedComponent {
+  id: number;
+  quantity: number;
+  [key: string]: any;
+}
+
 @Injectable({
   providedIn: 'root',
 })
 export class RequestService {
-  private apiUrl = `${environment.apiUrl}/requests`;  // URL base para la API de requests
+  private apiUrl = `${environment.apiUrl}/requests`;
 
   constructor(private http: HttpClient, private userService: UserService) { }
 
@@ -23,23 +29,32 @@ export class RequestService {
   }
 
   // Crear una solicitud
-  createRequest(requestData: any, requestDetails: any[]): Observable<any> {
-    const userId = this.userService.getUserId();
+  createRequest(requestData: any, requestDetails: any[], file?: File): Observable<any> {
+    const userId = Number(this.userService.getUserId());
     if (!userId) {
       console.error('Error: Usuario no autenticado');
       throw new Error('Usuario no autenticado');
     }
   
-    const body = {
-      userId,  // Enviar el userId
-      requestDetails,
-      ...requestData,  // Si hay otros datos de la solicitud
-    };
+    const formData = new FormData();
+    formData.append('userId', userId.toString());
+    formData.append('description', requestData.description || '');
+    formData.append('status', requestData.status || 'pendiente');
+    
+    // Enviar todo el array como un JSON
+    formData.append('requestDetails', JSON.stringify(requestDetails));
   
-    console.log('Payload enviado al backend:', body);
+    if (file) {
+      formData.append('file', file, file.name);
+    }
   
-    return this.http.post<any>(`${this.apiUrl}/`, body);  // Enviar la solicitud al backend
-  }
+    console.log('Datos enviados al backend:');
+    formData.forEach((value, key) => {
+      console.log(`Key: ${key}, Value: ${value}`);
+    });
+  
+    return this.http.post<any>(`${this.apiUrl}/`, formData);
+  }   
 
   // Actualizar una solicitud (aceptar, rechazar)
   updateRequest(id: number, requestData: any): Observable<any> {
@@ -52,33 +67,43 @@ export class RequestService {
   }
 
   // Obtener los componentes seleccionados desde localStorage
-  getSelectedComponents(): any {
+  getSelectedComponents(): SelectedComponent[] {
     const components = localStorage.getItem('selectedComponents');
-    return components ? JSON.parse(components) : {};
+    return components ? JSON.parse(components) : [];
   }
 
   // Almacenar los componentes seleccionados en localStorage
-  setSelectedComponents(components: any): void {
+  setSelectedComponents(components: SelectedComponent[]): void {
     localStorage.setItem('selectedComponents', JSON.stringify(components));
+  }  
+
+  // Obtener el número de componentes seleccionados (conteo total)
+  getSelectedComponentCount(): number {
+    const selectedComponents = this.getSelectedComponents();
+    return selectedComponents.reduce((total: number, component: SelectedComponent) => total + component.quantity, 0);
   }
 
-  addSelectedComponentToStorage(component: any, quantity: number): void {
+  // Agregar un componente a la lista de seleccionados
+  addSelectedComponentToStorage(component: SelectedComponent, quantity: number): void {
     const userId = this.userService.getUserId();  // Verificar si el usuario está autenticado
     if (!userId) {
       console.error('No se puede almacenar en localStorage, el usuario no está autenticado.');
-      return;  // Si no está autenticado, no se guarda nada
+      return;
     }
-    let selectedComponents = JSON.parse(localStorage.getItem('selectedComponents') || '[]');
-    if (!Array.isArray(selectedComponents)) {
-      selectedComponents = [];
-    }
-    const index = selectedComponents.findIndex((item: any) => item.id === component.id);
+    let selectedComponents = this.getSelectedComponents();
+    const index = selectedComponents.findIndex((item: SelectedComponent) => item.id === component.id);
     if (index !== -1) {
       selectedComponents[index].quantity = quantity;
     } else {
       selectedComponents.push({ ...component, quantity });
     }
-    localStorage.setItem('selectedComponents', JSON.stringify(selectedComponents));
+    this.setSelectedComponents(selectedComponents);
   }
-  
+
+  // Eliminar un componente de la lista seleccionada
+  removeSelectedComponentFromStorage(componentId: number): void {
+    let selectedComponents = this.getSelectedComponents();
+    selectedComponents = selectedComponents.filter((item: SelectedComponent) => item.id !== componentId);
+    this.setSelectedComponents(selectedComponents);
+  }
 }

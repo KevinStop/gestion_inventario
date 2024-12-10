@@ -5,13 +5,13 @@ import { UnauthGuard } from './guards/unauth-guard.guard';
 export const routes: Routes = [
   {
     path: '',
-    loadComponent: () => import('./components/login/login.component'),
+    loadComponent: () => import('./pages/authentication/login/login.component'),
     pathMatch: 'full',
     canActivate: [UnauthGuard],
   },
   {
     path: 'register',
-    loadComponent: () => import('./components/register/register.component'),
+    loadComponent: () => import('./pages/authentication/register/register.component'),
     canActivate: [UnauthGuard], 
   },
   {

@@ -14,7 +14,7 @@ import { RequestService } from '../../../services/request.service';
 })
 export default class ViewComponentsComponent implements OnInit {
   components: any[] = [];
-  selectedQuantities: any = {};
+  selectedQuantities: { [key: number]: number } = {};
 
   constructor(
     private componentService: ComponentService,
@@ -27,11 +27,12 @@ export default class ViewComponentsComponent implements OnInit {
     this.loadSelectedComponents();
   }
 
-  // Obtener todos los componentes
+  // Obtener solo los componentes activos
   getComponents(): void {
     this.componentService.getComponents().subscribe(
       (data) => {
-        this.components = data.components;
+        // Filtrar los componentes activos
+        this.components = data.components.filter((component: any) => component.isActive);
       },
       (error) => {
         console.error('Error al obtener los componentes:', error);
@@ -41,9 +42,18 @@ export default class ViewComponentsComponent implements OnInit {
 
   // Método para manejar la cantidad seleccionada de cada componente
   onQuantityChange(componentId: number, quantity: number): void {
-    this.selectedQuantities[componentId] = quantity;
-    this.updateSelectedComponents(); // Actualizar la lista de componentes seleccionados
-  }
+    const component = this.components.find(comp => comp.id === componentId);
+    if (component) {
+      if (quantity > component.quantity) {
+        // Si la cantidad supera la disponible, se ajusta al máximo permitido
+        this.selectedQuantities[componentId] = component.quantity;
+        alert(`La cantidad no puede exceder el máximo disponible (${component.quantity}).`);
+      } else {
+        // Si la cantidad es válida, la actualizamos
+        this.selectedQuantities[componentId] = quantity;
+      }
+    }
+  }  
 
   // Cargar los componentes seleccionados desde localStorage
   loadSelectedComponents(): void {
@@ -54,22 +64,14 @@ export default class ViewComponentsComponent implements OnInit {
     }, {});
   }
 
-  // Actualizar los componentes seleccionados en localStorage
-  updateSelectedComponents(): void {
-    for (let componentId in this.selectedQuantities) {
-      const quantity = this.selectedQuantities[componentId];
-      const component = this.components.find((c) => c.id === +componentId);
-      if (component) {
-        this.requestService.addSelectedComponentToStorage(component, quantity);
-      }
-    }
-  }
-
   // Método para agregar un componente a la lista de seleccionados
   addToSelectedList(component: any): void {
     const quantity = this.selectedQuantities[component.id];
     if (quantity && quantity > 0) {
+      // Solo agregar al carrito si la cantidad es válida (mayor a 0)
       this.requestService.addSelectedComponentToStorage(component, quantity);
+    } else {
+      console.error('Cantidad inválida para agregar');
     }
   }
 }

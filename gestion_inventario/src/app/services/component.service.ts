@@ -3,6 +3,8 @@ import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { UserService } from '../services/user.service';
+import { catchError } from 'rxjs/operators';
+import { throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -28,9 +30,10 @@ export class ComponentService {
     const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
     const formData = new FormData();
     formData.append('name', component.name);
-    formData.append('categoryId', component.categoryId.toString());
+    formData.append('categoryId', component.categoryId.toString());  // Cambiado a categoryId
     formData.append('quantity', component.quantity.toString());
     if (component.description) formData.append('description', component.description);
+    formData.append('isActive', component.isActive.toString());
     if (imageFile) formData.append('image', imageFile);
 
     return this.http.post<any>(this.apiUrl, formData, { headers });
@@ -46,10 +49,15 @@ export class ComponentService {
     formData.append('quantity', component.quantity.toString());
     if (component.description) formData.append('description', component.description);
     formData.append('isActive', component.isActive.toString());
-    if (imageFile) formData.append('image', imageFile);
-
+  
+    // Solo agregar la imagen al FormData si está definida
+    if (imageFile) {
+      formData.append('image', imageFile);
+    }
+  
     return this.http.put<any>(`${this.apiUrl}/${id}`, formData, { headers });
   }
+  
 
   // Eliminar un componente
   deleteComponent(id: number): Observable<any> {
@@ -74,6 +82,12 @@ export class ComponentService {
   // Obtener el conteo total de componentes
   getComponentCount(): Observable<number> {
     return this.http.get<number>(`${this.apiUrl}/count`);
+  }
+
+  // Método para filtrar componentes por estado (activo o inactivo)
+  filterComponentsByStatus(status: string): Observable<any> {
+    const params = new HttpParams().set('status', status);
+    return this.http.get<any>(`${this.apiUrl}`, { params });
   }
 
 }

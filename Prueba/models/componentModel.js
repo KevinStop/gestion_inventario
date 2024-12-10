@@ -24,12 +24,25 @@ const createComponent = async (data) => {
   }
 };
 
-// Obtener todos los componentes sin paginación
-const getAllComponents = async () => {
+// Obtener todos los componentes con filtro opcional por estado
+const getAllComponents = async (status) => {
   try {
+    const whereCondition = {};
+
+    // Si se proporciona el filtro de estado
+    if (status) {
+      if (status === 'activo') {
+        whereCondition.isActive = true;
+      } else if (status === 'inactivo') {
+        whereCondition.isActive = false;
+      }
+    }
+
     const components = await prisma.component.findMany({
+      where: whereCondition,  // Aplicamos el filtro por estado
       include: { category: true }
     });
+
     return components;
   } catch (error) {
     throw new Error('Error al obtener los componentes');
@@ -59,7 +72,7 @@ const updateComponent = async (id, data) => {
       isActive: data.isActive === 'true',
       imageUrl: data.imageUrl || null,
       category: {
-        connect: { id: parseInt(data.categoryId) }  // Conectamos con la categoría existente
+        connect: { id: parseInt(data.categoryId) }
       }
     };
     
@@ -145,6 +158,7 @@ const getComponentCount = async () => {
     throw new Error('Error al obtener el conteo de componentes');
   }
 };
+
 
 module.exports = {
   createComponent,

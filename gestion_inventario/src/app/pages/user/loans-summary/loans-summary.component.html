@@ -20,20 +20,18 @@
               <tr *ngFor="let component of selectedComponents">
                 <td class="whitespace-nowrap py-4 md:w-[384px]">
                   <div class="flex items-center gap-4">
-                    <img class="h-8 w-auto mr-3 dark:hidden" [src]="'http://localhost:3000' + component.imageUrl"
-                      alt="{{ component.name }}" />
                     <img class="h-8 w-auto mr-3" [src]="'http://localhost:3000' + component.imageUrl"
                       alt="{{ component.name }}" />
                     <a class="hover:underline">{{ component.name }}</a>
                   </div>
                 </td>
-                <td class="p-4 text-center text-base font-normal text-gray-900 dark:text-white"><input type="number" name="cantidad"
-                    [(ngModel)]="component.quantity"
-                    (change)="updateQuantity(component.componentId, component.quantity)" min="1"
+                <td class="p-4 text-center text-base font-normal text-gray-900 dark:text-white">
+                  <input type="number" name="cantidad" [(ngModel)]="component.quantity"
+                    (change)="updateQuantity(component.id, component.quantity)" min="1"
                     class="mt-1 w-24 p-2 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-white dark:border-gray-700 text-center" />
                 </td>
                 <td class="p-4 text-base font-bold text-gray-900 dark:text-white flex justify-center items-center">
-                  <button type="button" (click)="removeComponent(component.componentId)"
+                  <button type="button" (click)="removeComponent(component.id)"
                     class="flex items-center text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-7 py-2 text-center dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 -ml-0.5" viewbox="0 0 20 20"
                       fill="currentColor" aria-hidden="true">
@@ -43,17 +41,26 @@
                     </svg>
                     Eliminar
                   </button>
-                </td>                
+                </td>
               </tr>
             </tbody>
           </table>
+          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            for="multiple_files">Comprobante</label>
+          <input data-popover-target="popover-right" data-popover-placement="bottom" enctype="multipart/form-data"
+            class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
+            id="comprobante" type="file" accept=".png, .jpg, .jpeg, .pdf" (change)="onFileChange($event)" />
+          <label for="description" class="mt-4 block mb-2 text-sm font-medium text-gray-900 dark:text-white">Descripción
+            (Opcional)</label>
+          <textarea id="description" rows="4" [(ngModel)]="description" name="description"
+            class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+            placeholder="Descripcion mas detallada de la actividad o proyecto">
+          </textarea>
         </div>
-
         <div class="mt-4 space-y-6">
           <div class="gap-4 sm:flex sm:items-center">
             <button type="button"
               class="w-full rounded-lg  border border-gray-200 bg-white px-5  py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700">Regresar</button>
-
             <button (click)="submitRequest()" type="submit"
               class="mt-4 flex w-full items-center justify-center rounded-lg bg-primary-700  px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300  dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 sm:mt-0">Solicitar
               Prestamo</button>
@@ -63,3 +70,14 @@
     </div>
   </form>
 </section>
+
+<div data-popover id="popover-right" role="tooltip"
+  class="absolute z-10 invisible inline-block w-64 text-sm text-gray-500 transition-opacity duration-300 bg-white border border-gray-200 rounded-lg shadow-sm opacity-0 dark:text-gray-400 dark:border-gray-600 dark:bg-gray-800">
+  <div class="px-3 py-2 bg-gray-100 border-b border-gray-200 rounded-t-lg dark:border-gray-600 dark:bg-gray-700">
+    <h3 class="font-semibold text-gray-900 dark:text-white">Información</h3>
+  </div>
+  <div class="px-3 py-2">
+    <p>Subir un comprobante que verifique la validez del prestamo.</p>
+  </div>
+  <div data-popper-arrow></div>
+</div>

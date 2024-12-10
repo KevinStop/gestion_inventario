@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { initFlowbite } from 'flowbite';
+import { initFlowbite, Modal} from 'flowbite';
 
 
 @Component({
@@ -10,6 +10,7 @@ import { initFlowbite } from 'flowbite';
   styleUrl: './loans.component.css'
 })
 export default class LoansComponent {
+  createProductModal: Modal | undefined;
 
   ngOnInit(): void {
     initFlowbite();

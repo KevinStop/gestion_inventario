@@ -17,6 +17,7 @@ const createRequest = async (data, requestDetails) => {
         },
         status: data.status || 'pendiente', // Estado por defecto
         description: data.description, // Descripción de la solicitud
+        fileUrl: data.fileUrl, // Aquí agregas el fileUrl (si existe)
         requestDetails: {
           create: requestDetails.map(detail => ({
             component: {

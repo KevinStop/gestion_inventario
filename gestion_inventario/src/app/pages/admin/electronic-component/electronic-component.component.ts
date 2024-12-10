@@ -3,7 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Modal, initFlowbite } from 'flowbite';
 import { ComponentService } from '../../../services/component.service';
-import { CategoryService } from '../../../services/category.service'; 
+import { CategoryService } from '../../../services/category.service';
 
 @Component({
   selector: 'app-electronic-component',
@@ -18,7 +18,7 @@ export default class ElectronicComponentComponent implements OnInit {
   components: any[] = [];
   isDeleteModalOpen: boolean = false;
   componentIdToDelete: number | null = null;
-  newComponent: any = { name: '', categoryId: '', quantity: 0 };
+  newComponent: any = { name: '', categoryId: '', quantity: null, description: '', isActive: false };
   selectedImage: File | undefined = undefined;
   imagePreviewUrl: string | undefined = undefined;
   selectedComponent: any = { name: '', categoryId: '', description: '', isActive: false };
@@ -26,43 +26,34 @@ export default class ElectronicComponentComponent implements OnInit {
   selectedCategories: string[] = [];
   categories: any[] = [];
   newCategory: any = { name: '' };
+  selectedCategory: any = { name: '' };
   successMessage: string = '';
+  isDrawerOpen: boolean = false;
+  selectedStatus: string | null = null;
+  categoryIdToDelete: number | null = null;
+  deleteItemType: string = '';
+  isEditingCategory: boolean = false;
 
-  constructor(private componentService: ComponentService, private categoryService: CategoryService) {}
+  constructor(private componentService: ComponentService, private categoryService: CategoryService) { }
 
   ngOnInit(): void {
     initFlowbite();
 
-    this.categoryService.getCategories().subscribe((categories) => {
-      this.categories = categories;
-    });
+    this.getCategories();
 
     this.getComponents();
 
-    const createModalElement = document.querySelector('#createModal') as HTMLElement;
-    this.createModal = new Modal(createModalElement);
-
     const successModalElement = document.querySelector('#successModal') as HTMLElement;
     this.successModal = new Modal(successModalElement);
-
-    const openButton = document.querySelector('#createModalButton') as HTMLElement;
-    openButton.addEventListener('click', () => {
-      this.createModal?.toggle();
-    });
-
-    const closeButton = createModalElement.querySelector('[data-modal-toggle="defaultModal"]') as HTMLElement;
-    closeButton.addEventListener('click', () => {
-      this.createModal?.hide();
-      this.removeImage();
-    });
 
     const continueButton = document.querySelector('#continueButton') as HTMLElement;
     continueButton.addEventListener('click', () => {
       this.successModal?.hide();
     });
-    
+
   }
 
+  // Método para obtener todos los componentes
   getComponents(): void {
     this.componentService.getComponents().subscribe(
       (data) => {
@@ -72,7 +63,19 @@ export default class ElectronicComponentComponent implements OnInit {
         console.error('Error al obtener los componentes:', error);
       }
     );
-  }  
+  }
+
+  // Método para obtener todas las categorías
+  getCategories(): void {
+    this.categoryService.getCategories().subscribe(
+      (data) => {
+        this.categories = data;
+      },
+      (error) => {
+        console.error('Error al obtener las categorías:', error);
+      }
+    );
+  }
 
   searchComponents(): void {
     if (this.searchTerm.trim()) {
@@ -87,7 +90,7 @@ export default class ElectronicComponentComponent implements OnInit {
     } else {
       this.getComponents();
     }
-  }  
+  }
 
   onImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -109,12 +112,15 @@ export default class ElectronicComponentComponent implements OnInit {
     this.imagePreviewUrl = undefined;
   }
 
+  resetForm(): void {
+    this.newComponent = { name: '', categoryId: '', quantity: null, description: '' };
+    this.removeImage();
+  }
+
   createComponent() {
     this.componentService.createComponent(this.newComponent, this.selectedImage).subscribe(
       (response) => {
-        console.log('Componente creado:', response);
         this.getComponents();
-        this.createModal?.hide();
         this.successMessage = 'Componente creado satisfactoriamente.';
         setTimeout(() => {
           this.successModal?.show();
@@ -128,9 +134,8 @@ export default class ElectronicComponentComponent implements OnInit {
 
   openDrawerForUpdate(component: any): void {
     this.selectedComponent = { ...component };
-    const drawer = document.getElementById('drawer-update-product') as HTMLElement;
-    drawer?.classList.remove('-translate-x-full');
-    drawer?.classList.add('translate-x-0');
+    this.isDrawerOpen = true;
+
   }
 
   updateComponent(): void {
@@ -156,14 +161,21 @@ export default class ElectronicComponentComponent implements OnInit {
     }
   }
 
-  openDeleteModal(id: number): void {
+  openDeleteModal(id: number, isCategory: boolean): void {
     this.isDeleteModalOpen = true;
-    this.componentIdToDelete = id;
-  }
+    if (isCategory) {
+      this.deleteItemType = 'esta categoría';
+      this.categoryIdToDelete = id;
+    } else {
+      this.deleteItemType = 'este componente';
+      this.componentIdToDelete = id;
+    }
+  }   
 
   closeDeleteModal(): void {
     this.isDeleteModalOpen = false;
     this.componentIdToDelete = null;
+    this.categoryIdToDelete = null;
   }
 
   confirmDelete(): void {
@@ -179,8 +191,20 @@ export default class ElectronicComponentComponent implements OnInit {
           alert('Hubo un error al intentar eliminar el componente');
         }
       );
+    } else if (this.categoryIdToDelete !== null) {
+      this.categoryService.deleteCategory(this.categoryIdToDelete).subscribe(
+        () => {
+          this.categories = this.categories.filter((category) => category.id !== this.categoryIdToDelete);
+          this.closeDeleteModal();
+          alert('Categoría eliminada con éxito');
+        },
+        (error) => {
+          console.error('Error al eliminar la categoría:', error);
+          alert('Hubo un error al intentar eliminar la categoría');
+        }
+      );
     }
-  }
+  }  
 
   getFilteredComponents(): void {
     if (this.selectedCategories.length > 0) {
@@ -208,9 +232,8 @@ export default class ElectronicComponentComponent implements OnInit {
   }
 
   closeDrawer(): void {
-    const drawer = document.getElementById('drawer-update-product') as HTMLElement;
-    drawer.classList.add('-translate-x-full');
-    drawer.classList.remove('translate-x-0');
+    this.isDrawerOpen = false;
+
   }
 
   // Método para crear la categoría
@@ -231,5 +254,94 @@ export default class ElectronicComponentComponent implements OnInit {
     );
   }
 
+  // Método para manejar el cambio en el filtro de estado
+  onStatusFilterChange(event: Event): void {
+    const select = event.target as HTMLSelectElement;
+    const selectedValue = select.value;
+
+    if (selectedValue === '') {
+      // Si la opción es "Todos", obtenemos todos los componentes
+      this.selectedStatus = null;
+      this.getComponents();
+    } else {
+      // Filtrar los componentes según el estado seleccionado (activo o inactivo)
+      this.selectedStatus = selectedValue === 'activo' ? 'activo' : 'inactivo';
+      this.filterComponentsByStatus(this.selectedStatus);
+    }
+  }
+
+  // Método para filtrar los componentes por estado (activo o inactivo)
+  filterComponentsByStatus(status: string): void {
+    if (status !== null) {
+      this.componentService.filterComponentsByStatus(status).subscribe(
+        (data) => {
+          this.components = data.components;
+        },
+        (error) => {
+          console.error('Error al filtrar componentes por estado:', error);
+        }
+      );
+    } else {
+      this.getComponents();
+    }
+  }
+
+  // Método para actualizar una categoría
+  updateCategory(): void {
+    if (this.selectedCategory && this.selectedCategory.id) {
+      this.categoryService.updateCategory(this.selectedCategory.id, this.selectedCategory).subscribe(
+        (response) => {
+          const index = this.categories.findIndex((category) => category.id === response.id);
+          if (index !== -1) {
+            this.categories[index] = response;
+          }
+        },
+        (error) => {
+          console.error('Error al actualizar la categoría:', error);
+          alert('Hubo un error al intentar actualizar la categoría');
+        }
+      );
+    }
+  }
+
+  // Método para eliminar una categoría
+  deleteCategory(): void {
+    if (this.categoryIdToDelete !== null) {
+      this.categoryService.deleteCategory(this.categoryIdToDelete).subscribe(
+        () => {
+          this.categories = this.categories.filter((category) => category.id !== this.categoryIdToDelete);
+          this.closeDeleteModal();
+          alert('Categoría eliminada con éxito');
+        },
+        (error) => {
+          console.error('Error al eliminar la categoría:', error);
+          alert('Hubo un error al intentar eliminar la categoría');
+        }
+      );
+    }
+  }
+
+  // Función para habilitar la edición del nombre de la categoría
+  enableEditCategory(category: any): void {
+    this.selectedCategory = { ...category };
+    this.isEditingCategory = true;
+  }
+
+  // Función para guardar la categoría actualizada
+  saveCategory(): void {
+    this.categoryService.updateCategory(this.selectedCategory.id, this.selectedCategory).subscribe(
+      (response) => {
+        const index = this.categories.findIndex((category) => category.id === response.id);
+        if (index !== -1) {
+          this.categories[index] = response;  
+        }
+        this.isEditingCategory = false; 
+      },
+      (error) => {
+        console.error('Error al actualizar la categoría:', error);
+        alert('Hubo un error al intentar actualizar la categoría');
+      }
+    );
+  }
 
 }

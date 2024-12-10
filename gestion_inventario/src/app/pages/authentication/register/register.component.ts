@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { UserService } from '../../services/user.service'; // Asegúrate de que la ruta del servicio es correcta
+import { UserService } from '../../../services/user.service';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
@@ -41,7 +41,6 @@ export default class RegisterComponent {
   
     this.userService.register(userData).subscribe(
       (response) => {
-        console.log('Usuario registrado con éxito', response);
         this.router.navigate(['/']);
       },
       (error) => {
