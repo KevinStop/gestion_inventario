@@ -28,7 +28,7 @@ const getAllComponents = async (req, res) => {
     if (name) {
       components = await componentModel.searchComponentsByName(name);
     } else {
-      components = await componentModel.getAllComponents(status);  // Pasamos el filtro de estado
+      components = await componentModel.getAllComponents(status);
     }
 
     res.status(200).json({ components });
@@ -88,6 +88,7 @@ const deleteComponent = async (req, res) => {
       return res.status(404).json({ error: 'Componente no encontrado' });
     }
 
+    // Elimina el archivo de imagen si existe
     if (component.imageUrl) {
       const imagePath = path.join(__dirname, '../uploads', path.basename(component.imageUrl));
       if (fs.existsSync(imagePath)) {
@@ -95,6 +96,7 @@ const deleteComponent = async (req, res) => {
       }
     }
 
+    // Llama al método del modelo que maneja la eliminación en cascada
     const deletedComponent = await componentModel.deleteComponent(id);
     res.status(200).json(deletedComponent);
   } catch (error) {

@@ -19,8 +19,20 @@ export const routes: Routes = [
     loadComponent: () => import('./components/layout/layout.component'),
     children: [
       {
+        path: 'componentMovement',
+        loadComponent: () => import('./pages/admin/component-movement/component-movement.component'),
+        canActivate: [AuthGuard],
+        data: { role: 'admin' },
+      },
+      {
         path: 'electronicComponent',
         loadComponent: () => import('./pages/admin/electronic-component/electronic-component.component'),
+        canActivate: [AuthGuard],
+        data: { role: 'admin' },
+      },
+      {
+        path: 'academicPeriods',
+        loadComponent: () => import('./pages/admin/academic-periods/academic-periods.component'),
         canActivate: [AuthGuard],
         data: { role: 'admin' },
       },

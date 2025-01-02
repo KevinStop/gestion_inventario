@@ -18,7 +18,6 @@ export default class ElectronicComponentComponent implements OnInit {
   components: any[] = [];
   isDeleteModalOpen: boolean = false;
   componentIdToDelete: number | null = null;
-  newComponent: any = { name: '', categoryId: '', quantity: null, description: '', isActive: false };
   selectedImage: File | undefined = undefined;
   imagePreviewUrl: string | undefined = undefined;
   selectedComponent: any = { name: '', categoryId: '', description: '', isActive: false };
@@ -107,35 +106,9 @@ export default class ElectronicComponentComponent implements OnInit {
     }
   }
 
-  removeImage(): void {
-    this.selectedImage = undefined;
-    this.imagePreviewUrl = undefined;
-  }
-
-  resetForm(): void {
-    this.newComponent = { name: '', categoryId: '', quantity: null, description: '' };
-    this.removeImage();
-  }
-
-  createComponent() {
-    this.componentService.createComponent(this.newComponent, this.selectedImage).subscribe(
-      (response) => {
-        this.getComponents();
-        this.successMessage = 'Componente creado satisfactoriamente.';
-        setTimeout(() => {
-          this.successModal?.show();
-        }, 300);
-      },
-      (error) => {
-        alert('Hubo un error al intentar crear el componente');
-      }
-    );
-  }
-
   openDrawerForUpdate(component: any): void {
     this.selectedComponent = { ...component };
     this.isDrawerOpen = true;
-
   }
 
   updateComponent(): void {
@@ -233,7 +206,6 @@ export default class ElectronicComponentComponent implements OnInit {
 
   closeDrawer(): void {
     this.isDrawerOpen = false;
-
   }
 
   // Método para crear la categoría

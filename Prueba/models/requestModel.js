@@ -7,9 +7,22 @@ const createRequest = async (data, requestDetails) => {
     throw new Error('El campo userId es obligatorio para crear una solicitud.');
   }
 
-  console.log('Datos para crear solicitud:', data, requestDetails);
-
   try {
+    // Obtener el periodo académico activo si no se proporciona `academicPeriodId`
+    let activeAcademicPeriodId = data.academicPeriodId;
+    if (!activeAcademicPeriodId) {
+      const activePeriod = await prisma.academicPeriod.findFirst({
+        where: { isActive: true },
+      });
+
+      if (!activePeriod) {
+        throw new Error('No hay un periodo académico activo. No se puede crear la solicitud.');
+      }
+
+      activeAcademicPeriodId = activePeriod.id;
+    }
+
+    // Crear la solicitud
     const request = await prisma.request.create({
       data: {
         user: {
@@ -18,8 +31,11 @@ const createRequest = async (data, requestDetails) => {
         status: data.status || 'pendiente', // Estado por defecto
         description: data.description, // Descripción de la solicitud
         fileUrl: data.fileUrl, // Aquí agregas el fileUrl (si existe)
+        academicPeriod: {
+          connect: { id: activeAcademicPeriodId }, // Conecta el periodo académico activo
+        },
         requestDetails: {
-          create: requestDetails.map(detail => ({
+          create: requestDetails.map((detail) => ({
             component: {
               connect: { id: detail.componentId }, // Conecta el componente por ID
             },
@@ -31,7 +47,7 @@ const createRequest = async (data, requestDetails) => {
 
     return request;
   } catch (error) {
-    console.error('Error en createRequest:', error);
+    console.error('Error en createRequest:', error.message);
     throw new Error('Error al crear la solicitud: ' + error.message);
   }
 };

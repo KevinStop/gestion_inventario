@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, throwError  } from 'rxjs';
+import { Router } from '@angular/router'; // Importar el Router
+import { Observable, BehaviorSubject, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { jwtDecode } from 'jwt-decode';
 
@@ -10,10 +11,9 @@ import { jwtDecode } from 'jwt-decode';
 export class UserService {
   private apiUrl = `${environment.apiUrl}/users`;
   private sessionExpiringSubject = new BehaviorSubject<boolean>(false);
-  private tokenExpirationTime: number | null = null;
   private expirationWarningTime = 5 * 60 * 1000;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient, private router: Router) { }
 
   // Obtener el rol del usuario desde el token JWT
   getUserRole(): string | null {
@@ -73,18 +73,22 @@ export class UserService {
   // Método que verifica si la sesión está por expirar y emite una notificación
   checkSessionExpiration() {
     const remainingTime = this.getRemainingTime();
-    
-    // Si queda menos de 5 minutos para la expiración, mostrar el mensaje
-    if (remainingTime < this.expirationWarningTime && remainingTime > 0) {
+
+    if (remainingTime <= 0) {
+      // Si el token ha expirado, cerrar sesión y redirigir al login
+      this.logout();
+      this.router.navigate(['/']); // Redirigir al login
+    } else if (remainingTime < this.expirationWarningTime) {
+      // Si queda menos de 5 minutos para la expiración, emitir la advertencia
       this.sessionExpiringSubject.next(true);
     }
 
-    // Si el tiempo restante es mayor que 0 y menos de 5 minutos, chequeamos continuamente
-    setTimeout(() => this.checkSessionExpiration(), 1000); // Verificación cada segundo
+    // Continuar verificando cada segundo
+    setTimeout(() => this.checkSessionExpiration(), 1000);
   }
 
-   // Iniciar la comprobación de expiración
-   startSessionExpirationCheck() {
+  // Iniciar la comprobación de expiración
+  startSessionExpirationCheck() {
     this.checkSessionExpiration();
   }
 
@@ -100,15 +104,15 @@ export class UserService {
       // Si no hay token, no permitimos la acción
       return throwError('No token provided');
     }
-  
+
     // Configuramos las cabeceras correctamente para enviar el token
     const headers = {
       Authorization: `Bearer ${token}`,
     };
-  
+
     return this.http.post<any>(`${this.apiUrl}/extend-session`, { token }, { headers });
   }
-  
+
 
   // Eliminar token de localStorage (logout)
   logout(): void {
@@ -120,12 +124,12 @@ export class UserService {
   isAuthenticated(): boolean {
     const token = this.getToken();
     if (!token) return false;
-  
+
     const decodedToken: any = jwtDecode(token);
     const currentTime = Date.now() / 1000; // El tiempo actual en segundos
-  
+
     return decodedToken.exp > currentTime; // Verifica que el token no haya expirado
-  }  
+  }
 
   // Verificar si el usuario tiene un rol específico
   hasRole(role: string): boolean {
@@ -145,13 +149,13 @@ export class UserService {
     return role === 'user';
   }
 
-// Obtener el ID del usuario desde el token JWT
-getUserId(): string | null {
-  const token = this.getToken(); // Asegúrate de tener esta función para obtener el token
-  if (!token) return null;
+  // Obtener el ID del usuario desde el token JWT
+  getUserId(): string | null {
+    const token = this.getToken();
+    if (!token) return null;
 
-  const decodedToken: any = jwtDecode(token); // Decodifica el JWT
-  return decodedToken.userId || null; // Devuelve el userId desde el payload
-}
+    const decodedToken: any = jwtDecode(token); // Decodifica el JWT
+    return decodedToken.userId || null; // Devuelve el userId desde el payload
+  }
 
 }

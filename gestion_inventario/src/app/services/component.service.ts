@@ -46,7 +46,6 @@ export class ComponentService {
     const formData = new FormData();
     formData.append('name', component.name);
     formData.append('categoryId', component.categoryId.toString());
-    formData.append('quantity', component.quantity.toString());
     if (component.description) formData.append('description', component.description);
     formData.append('isActive', component.isActive.toString());
   

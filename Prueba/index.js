@@ -13,6 +13,8 @@ const requestDetailRoutes = require('./routes/requestDetailRoutes');
 const userRoutes = require('./routes/userRoutes');
 const loanRoutes = require('./routes/loanRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
+const componentMovementRoutes = require('./routes/componentMovementRoutes');
+const academicPeriodRoutes = require('./routes/academicPeriodRoutes');
 
 // Configuración de archivos estáticos para la carpeta 'uploads'
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
@@ -82,6 +84,8 @@ app.use('/requests', requestRoutes);
 app.use('/request-details', requestDetailRoutes);
 app.use('/loans', loanRoutes);
 app.use('/categories', categoryRoutes);
+app.use('/component-movements', componentMovementRoutes);
+app.use('/academic-periods', academicPeriodRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);

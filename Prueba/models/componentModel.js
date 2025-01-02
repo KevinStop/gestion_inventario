@@ -67,7 +67,6 @@ const updateComponent = async (id, data) => {
   try {
     const componentData = {
       name: data.name,
-      quantity: parseInt(data.quantity),
       description: data.description || null,
       isActive: data.isActive === 'true',
       imageUrl: data.imageUrl || null,
@@ -90,14 +89,30 @@ const updateComponent = async (id, data) => {
 // Eliminar un componente por su ID
 const deleteComponent = async (id) => {
   try {
+    // Elimina los registros relacionados primero
+    await prisma.requestDetail.deleteMany({
+      where: { componentId: Number(id) },
+    });
+
+    await prisma.loanHistory.deleteMany({
+      where: { componentId: Number(id) },
+    });
+
+    await prisma.componentMovement.deleteMany({
+      where: { componentId: Number(id) },
+    });
+
+    // Luego elimina el componente
     const deletedComponent = await prisma.component.delete({
       where: { id: Number(id) },
     });
+
     return deletedComponent;
   } catch (error) {
-    throw new Error('Error al eliminar el componente');
+    throw new Error('Error al eliminar el componente y sus relaciones');
   }
 };
+
 
 // Buscar componentes por nombre y su categoría
 const searchComponentsByName = async (name) => {

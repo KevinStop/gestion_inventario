@@ -1,52 +1,31 @@
-const requestModel = require('../models/requestModel');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const upload = require('../config/uploadConfig');
+const requestModel = require('../models/requestModel');
 const fs = require('fs');
 const path = require('path');
 
+// Crear una solicitud
 const createRequest = async (req, res) => {
   let { userId, requestDetails, description } = req.body;
-
-  console.log('Datos recibidos en el controlador:', req.body);
 
   if (!userId) {
     return res.status(400).json({ error: 'Usuario no autenticado' });
   }
 
-  // Convertir el userId a número (int) antes de pasarlo a Prisma
   userId = parseInt(userId);
   if (isNaN(userId)) {
     return res.status(400).json({ error: 'userId debe ser un número válido' });
   }
 
-  // Verificar que requestDetails es un array y que no está vacío
   if (!Array.isArray(requestDetails) || requestDetails.length === 0) {
     return res.status(400).json({ error: 'Detalles de la solicitud no válidos o vacíos.' });
-  }
-
-  // Convertir las cadenas JSON en objetos si es necesario
-  try {
-    requestDetails = requestDetails.map((detail) => {
-      if (typeof detail === 'string') {
-        return JSON.parse(detail); 
-      }
-      return detail; 
-    });
-  } catch (error) {
-    return res.status(400).json({ error: 'Error al parsear los detalles de la solicitud' });
-  }
-
-  let fileUrl = null;
-  if (req.file) {
-    fileUrl = `/uploads/${req.file.filename}`; 
   }
 
   try {
     const data = {
       userId,
       description: description || null,
-      fileUrl,
+      fileUrl: req.file ? `/uploads/${req.file.filename}` : null,
     };
 
     const newRequest = await requestModel.createRequest(data, requestDetails);
