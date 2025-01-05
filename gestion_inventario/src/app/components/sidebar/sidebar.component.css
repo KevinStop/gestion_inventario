@@ -12,6 +12,6 @@
   color: white;
 }
 
-.active-link:hover {
+.mouseover:hover {
   transform: scale(1.1); /* Escala ligeramente mayor al pasar el mouse */
 }

@@ -1,10 +1,11 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Modal, initFlowbite } from 'flowbite';
 import { ComponentService } from '../../../services/component.service';
 import { ComponentMovementService } from '../../../services/component-movement.service';
 import { CategoryService } from '../../../services/category.service';
+import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 
 @Component({
   selector: 'app-component-movement',
@@ -30,8 +31,16 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   successModal?: Modal;
   selectedImage: File | undefined = undefined;
   imagePreviewUrl: string | undefined = undefined;
+  showErrors: boolean = false;
+  quantityValid: boolean = true;
+  reasonValid: boolean = true;
+  nameValid: boolean = true;
+  categoryValid: boolean = true;
+  quantityValid2: boolean = true;
+  descriptionValid: boolean = true;
 
-  constructor(private componentService: ComponentService, private componentMovementService: ComponentMovementService, private categoryService: CategoryService) { }
+  constructor(private componentService: ComponentService, private componentMovementService: ComponentMovementService, 
+    private categoryService: CategoryService, private sweetalertService: SweetalertService) { }
 
   ngOnInit(): void {
     initFlowbite();
@@ -40,18 +49,9 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     this.getCategories();
 
     document.addEventListener('click', this.closeComponentListOnClickOutside.bind(this));
-
-    const successModalElement = document.querySelector('#successModal') as HTMLElement;
-    this.successModal = new Modal(successModalElement);
-
-    const continueButton = document.querySelector('#continueButton') as HTMLElement;
-    continueButton.addEventListener('click', () => {
-      this.successModal?.hide();
-    });
   }
-  
+
   ngOnDestroy(): void {
-    // Remover listener al destruir el componente
     document.removeEventListener('click', this.closeComponentListOnClickOutside.bind(this));
   }
 
@@ -103,8 +103,8 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   selectComponent(component: any): void {
     this.selectedComponent = component;
     this.isAddingComponent = false;
-    this.searchTerm = component.name; 
-    this.showComponentList = false; 
+    this.searchTerm = component.name;
+    this.showComponentList = false;
   }
 
   toggleTypeDropdown(): void {
@@ -118,8 +118,9 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
 
   // Enviar el movimiento al backend
   submitMovement(): void {
-    if (!this.selectedComponent || (!this.quantity && !this.isAddingComponent) || !this.reason) {
-      alert('Por favor, complete todos los campos antes de enviar.');
+    this.showErrors = true;
+  
+    if (!this.validateForm()) {
       return;
     }
   
@@ -133,13 +134,21 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   
     this.componentMovementService.createComponentMovement(movement).subscribe(
       (response) => {
-        alert(`Movimiento ${movementType} realizado con éxito.`);
+        this.sweetalertService.success(`Movimiento de ${movementType} realizado con éxito.`);
         this.resetForm();
         this.getComponents();
       },
       (error) => {
-        console.error('Error al realizar el movimiento:', error);
-        alert('Hubo un error al procesar el movimiento.');
+        const errorMessage = error.error?.error || 'Hubo un error al procesar el movimiento.';
+        if (errorMessage.includes('razón del movimiento')) {
+          this.sweetalertService.error('La razón del movimiento es obligatoria.');
+        } else if (errorMessage === 'No hay un periodo académico activo disponible.') {
+          this.sweetalertService.error(
+            'No hay un periodo académico activo. Por favor, configúrelo antes de continuar.'
+          );
+        } else {
+          this.sweetalertService.error(errorMessage);
+        }
       }
     );
   }  
@@ -151,42 +160,60 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     this.selectedComponent = null;
     this.searchTerm = '';
     this.selectedType = 'Ingreso';
+  
+    this.newComponent = {
+      name: '',
+      categoryId: '',
+      quantity: null,
+      description: '',
+      isActive: false,
+    };
+    this.selectedImage = undefined;
+    this.imagePreviewUrl = undefined;
+  
+    this.showErrors = false;
   }
-
-  createComponent() {
-    this.componentService.createComponent(this.newComponent, this.selectedImage).subscribe(
+  
+  createComponent(): void {
+    this.showErrors = true;
+  
+    if (!this.validateForm2()) {
+      this.sweetalertService.error('Por favor complete todos los campos obligatorios correctamente.');
+      return;
+    }
+  
+    // Sincronizar razón entre formularios
+    if (this.reason.trim().length === 0) {
+      this.sweetalertService.error('La razón del movimiento es obligatoria.');
+      return;
+    }
+  
+    // Añadir la razón al nuevo componente
+    const newComponentData = {
+      ...this.newComponent,
+      reason: this.reason, 
+    };
+  
+    this.componentService.createComponent(newComponentData, this.selectedImage).subscribe(
       (response) => {
-        const createdComponent = response; 
-        this.successMessage = 'Componente creado satisfactoriamente.';
+        this.successMessage = 'Componente y movimiento de ingreso creados satisfactoriamente.';
+        this.sweetalertService.success(this.successMessage);
+  
         this.isAddingComponent = false;
-  
-        const movement = {
-          componentId: createdComponent.id,
-          quantity: this.quantity = 0,
-          reason: this.reason,
-          movementType: 'ingreso'
-        };
-  
-        this.componentMovementService.createComponentMovement(movement).subscribe(
-          (movementResponse) => {
-            this.successMessage = 'Movimiento de ingreso realizado satisfactoriamente.';
-            this.getComponents(); 
-            this.resetForm();
-  
-            setTimeout(() => {
-              this.successModal?.show();
-            }, 300);
-          },
-          (movementError) => {
-            alert('Error al realizar el movimiento de ingreso.');
-            console.error('Movimiento error:', movementError);
-          }
-        );
+        this.getComponents();
+        this.resetForm();
       },
       (error) => {
-        alert('Hubo un error al intentar crear el componente');
-        console.error('Error al crear el componente:', error);
-        this.resetForm();
+        const errorMessage = error.error?.error || 'Hubo un error al intentar crear el componente.';
+        if (errorMessage.includes('razón del movimiento')) {
+          this.sweetalertService.error('La razón del movimiento es obligatoria.');
+        } else if (errorMessage === 'No hay un periodo académico activo disponible.') {
+          this.sweetalertService.error(
+            'No hay un periodo académico activo. Por favor, configúrelo antes de continuar.'
+          );
+        } else {
+          this.sweetalertService.error(errorMessage);
+        }
       }
     );
   }  
@@ -216,6 +243,51 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     this.selectedComponent = null;
     this.showComponentList = false;
     this.searchTerm = '';
+  }
+
+  // Validar individualmente los campos en cada cambio
+  onQuantityChange(): void {
+    this.quantityValid = this.quantity !== null && this.quantity > 0;
+  }
+
+  onReasonChange(): void {
+    this.reasonValid = this.reason.trim().length > 0;
+  }
+
+  // Método para validar el formulario completo
+  private validateForm(): boolean {
+    this.quantityValid = this.quantity !== null && this.quantity > 0;
+    this.reasonValid = this.reason.trim().length > 0;
+  
+    return this.quantityValid && this.reasonValid;
+  }
+
+  // Métodos para validar individualmente
+  onNameChange(): void {
+    this.nameValid = this.newComponent.name.trim().length > 0;
+  }
+
+  onCategoryChange(): void {
+    this.categoryValid = !!this.newComponent.categoryId;
+  }
+
+  onDescriptionChange(): void {
+    this.descriptionValid = this.newComponent.description.trim().length > 0;
+  }
+
+  onQuantityChange2(): void {
+    this.quantityValid2 = this.newComponent.quantity !== null && this.newComponent.quantity > 0;
+  }
+
+  // Validación general del formulario
+  private validateForm2(): boolean {
+    this.nameValid = this.newComponent.name.trim().length > 0;
+    this.categoryValid = !!this.newComponent.categoryId;
+    this.quantityValid2 = this.newComponent.quantity !== null && this.newComponent.quantity > 0;
+    this.descriptionValid = this.newComponent.description.trim().length > 0;
+    this.reasonValid = this.reason.trim().length > 0;
+  
+    return this.nameValid && this.categoryValid && this.quantityValid2 && this.descriptionValid && this.reasonValid;
   }
 
 }

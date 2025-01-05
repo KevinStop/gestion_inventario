@@ -4,6 +4,7 @@ import { SidebarComponent } from '../sidebar/sidebar.component';
 import { FooterComponent } from '../footer/footer.component';
 import { RouterOutlet } from '@angular/router';
 import { initFlowbite } from 'flowbite';
+import { RequestService } from '../../services/request.service';
 
 @Component({
   selector: 'app-layout',
@@ -14,8 +15,11 @@ import { initFlowbite } from 'flowbite';
 })
 export default class LayoutComponent implements OnInit{
 
+  constructor(private requestService: RequestService) {}
+
   ngOnInit(): void {
     initFlowbite();
+    this.requestService.initialize();
 
     // On page load or when changing themes, best to add inline in `head` to avoid FOUC
     if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {

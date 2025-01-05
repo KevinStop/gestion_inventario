@@ -1,26 +1,41 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-
-// Crear un componente con una categoría existente
-const createComponent = async (data) => {
+const componentMovementModel = require('../models/componentMovementModel'); 
+const createComponentWithMovement = async (data) => {
   try {
-    const componentData = {
-      name: data.name,
-      quantity: parseInt(data.quantity),
-      description: data.description || null,
-      isActive: data.isActive === 'true',
-      imageUrl: data.imageUrl || null,
-      category: {
-        connect: { id: parseInt(data.categoryId) }
-      }
-    };
-    const component = await prisma.component.create({
-      data: componentData,
+    return await prisma.$transaction(async (prisma) => {
+      // Crear el componente
+      const component = await prisma.component.create({
+        data: {
+          name: data.name,
+          quantity: 0, 
+          description: data.description || null,
+          isActive: data.isActive === 'true',
+          imageUrl: data.imageUrl || null,
+          category: {
+            connect: { id: parseInt(data.categoryId) },
+          },
+        },
+      });
+
+      // Reutilizar el método de movimiento para registrar el ingreso
+      const movementData = {
+        componentId: component.id,
+        quantity: parseInt(data.quantity),
+        reason: data.reason || 'Sin razón especificada',
+        movementType: 'ingreso',
+      };
+
+      const componentMovement = await componentMovementModel.createComponentMovement({
+        ...movementData,
+        prisma, // Pasamos la instancia de Prisma de la transacción
+      });
+
+      return { component, componentMovement };
     });
-    return component;
   } catch (error) {
-    console.error('Error al crear el componente:', error.message);
-    throw new Error('Error al crear el componente');
+    console.error('Error al crear el componente con movimiento:', error.message);
+    throw new Error('Error al crear el componente con movimiento');
   }
 };
 
@@ -176,7 +191,7 @@ const getComponentCount = async () => {
 
 
 module.exports = {
-  createComponent,
+  createComponentWithMovement,
   getAllComponents,
   getComponentById,
   updateComponent,

@@ -5,18 +5,21 @@ const createComponentMovement = async (req, res) => {
   try {
     const data = req.body;
 
-    // Validar tipo de movimiento
     if (!['ingreso', 'egreso'].includes(data.movementType)) {
       return res.status(400).json({ error: 'El tipo de movimiento debe ser "ingreso" o "egreso"' });
     }
 
-    // Crear el movimiento
     const componentMovement = await componentMovementModel.createComponentMovement(data);
 
     res.status(201).json(componentMovement);
   } catch (error) {
-    console.error('Error al crear el movimiento del componente:', error.message);
-    res.status(500).json({ error: error.message });
+    console.error('Error en el controlador createComponentMovement:', error.message);
+
+    if (error.message === 'PERIODO_ACTIVO_NO_ENCONTRADO') {
+      return res.status(400).json({ error: 'No hay un periodo académico activo disponible.' });
+    }
+
+    res.status(500).json({ error: 'Error al crear el movimiento del componente.' });
   }
 };
 

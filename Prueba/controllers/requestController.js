@@ -1,12 +1,10 @@
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
 const requestModel = require('../models/requestModel');
 const fs = require('fs');
 const path = require('path');
 
 // Crear una solicitud
 const createRequest = async (req, res) => {
-  let { userId, requestDetails, description } = req.body;
+  let { userId, requestDetails, description, typeRequest, returnDate } = req.body;
 
   if (!userId) {
     return res.status(400).json({ error: 'Usuario no autenticado' });
@@ -21,10 +19,16 @@ const createRequest = async (req, res) => {
     return res.status(400).json({ error: 'Detalles de la solicitud no válidos o vacíos.' });
   }
 
+  if (!typeRequest) {
+    return res.status(400).json({ error: 'El campo typeRequest es obligatorio.' });
+  }
+
   try {
     const data = {
       userId,
       description: description || null,
+      typeRequest, 
+      returnDate: returnDate ? new Date(returnDate) : null,
       fileUrl: req.file ? `/uploads/${req.file.filename}` : null,
     };
 
@@ -37,13 +41,26 @@ const createRequest = async (req, res) => {
   }
 };
 
-// Obtener todas las solicitudes
-const getAllRequests = async (req, res) => {
+// Obtener todas las solicitudes activas
+const getFilteredRequests = async (req, res) => {
   try {
-    const requests = await requestModel.getAllRequests();
+    // Leer filtros desde la consulta
+    const { userId, status, isActive } = req.query;
+
+    // Convertir a tipos adecuados (userId e isActive)
+    const filters = {
+      userId: userId ? parseInt(userId) : undefined,
+      status: status || undefined,
+      isActive: isActive !== undefined ? isActive === 'true' : undefined,
+    };
+
+    // Llamar al modelo con los filtros
+    const requests = await requestModel.getFilteredRequests(filters);
+
     return res.status(200).json(requests);
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Error en getFilteredRequests:', error.message);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 };
 
@@ -62,91 +79,121 @@ const getRequestById = async (req, res) => {
   }
 };
 
-// Actualizar una solicitud (aceptar/rechazar)
-const updateRequest = async (req, res) => {
-  const { id } = req.params;
-  const data = req.body;
+// Actualizar una solicitud (aceptar)
+const acceptRequest = async (req, res) => {
+  const { id } = req.params; // ID de la solicitud a aceptar
+
+  if (!id) {
+    return res.status(400).json({ error: 'ID de la solicitud no proporcionado.' });
+  }
+
+  const requestId = parseInt(id);
+
+  if (isNaN(requestId)) {
+    return res.status(400).json({ error: 'El ID de la solicitud debe ser un número válido.' });
+  }
 
   try {
-    const updatedRequest = await requestModel.updateRequest(id, data);
-    return res.status(200).json(updatedRequest);
+    const updatedRequest = await requestModel.acceptRequest(requestId);
+
+    return res.status(200).json({
+      message: 'Solicitud aceptada con éxito.',
+      updatedRequest,
+    });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Error al aceptar la solicitud:', error.message);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
   }
 };
 
 // Eliminar una solicitud
 const deleteRequest = async (req, res) => {
-  const { id } = req.params; // Obtenemos el ID de la solicitud desde los parámetros de la URL
+  const { id } = req.params; // ID de la solicitud
+
+  const requestId = parseInt(id);
+  const userId = req.user?.userId; // ID del usuario autenticado
+  const role = req.user?.role; // Rol del usuario autenticado
+
+  if (isNaN(requestId)) {
+    return res.status(400).json({ error: 'El ID de la solicitud debe ser un número válido.' });
+  }
 
   try {
-    // Obtener los detalles de la solicitud antes de eliminarla
-    const request = await prisma.request.findUnique({
-      where: {
-        requestId: parseInt(id),
-      },
-      select: {
-        fileUrl: true, // Seleccionar solo el campo fileUrl
-      },
+    const deletedRequest = await requestModel.deleteRequest(requestId, userId, role);
+
+    return res.status(200).json({
+      message: 'Solicitud eliminada con éxito.',
+      deletedRequest,
     });
-
-    if (!request) {
-      return res.status(404).json({ error: "Solicitud no encontrada" });
-    }
-
-    // Eliminar el archivo asociado, si existe
-    if (request.fileUrl) {
-      const filePath = path.join(__dirname, '../uploads', path.basename(request.fileUrl));
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath); // Eliminar el archivo
-      }
-    }
-
-    // Eliminar los detalles de la solicitud asociados
-    await prisma.requestDetail.deleteMany({
-      where: {
-        requestId: parseInt(id),
-      },
-    });
-
-    // Eliminar los préstamos asociados
-    await prisma.loan.deleteMany({
-      where: {
-        requestId: parseInt(id),
-      },
-    });
-
-    // Eliminar la solicitud
-    const deletedRequest = await prisma.request.delete({
-      where: {
-        requestId: parseInt(id),
-      },
-    });
-
-    res.status(200).json(deletedRequest);
   } catch (error) {
-    console.error('Error al eliminar la solicitud:', error.message);
-    res.status(500).json({ error: "Error al eliminar la solicitud" });
+    console.error('Error en deleteRequest:', error.message);
+    return res.status(403).json({ error: error.message });
   }
 };
 
 // Finalizar una solicitud y reponer los componentes
 const finalizeRequest = async (req, res) => {
-  const { id } = req.params;
+  const { id } = req.params; // ID de la solicitud a finalizar
+
+  if (!id) {
+    return res.status(400).json({ error: 'ID de la solicitud no proporcionado.' });
+  }
+
+  const requestId = parseInt(id);
+
+  if (isNaN(requestId)) {
+    return res.status(400).json({ error: 'El ID de la solicitud debe ser un número válido.' });
+  }
 
   try {
-    const finalizedRequest = await requestModel.finalizeRequest(id);
-    return res.status(200).json(finalizedRequest);
+    const result = await requestModel.finalizeRequest(requestId);
+
+    return res.status(200).json({
+      message: 'Solicitud finalizada con éxito.',
+      updatedRequest: result.updatedRequest,
+      requestPeriod: result.requestPeriod,
+    });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error('Error al finalizar la solicitud:', error.message);
+    return res.status(500).json({ error: 'Error interno del servidor.' });
+  }
+};
+
+const updateReturnDate = async (req, res) => {
+  const { id } = req.params; // ID de la solicitud
+  const { newReturnDate } = req.body; // Nueva fecha proporcionada por el usuario
+
+  if (!newReturnDate) {
+    return res.status(400).json({ error: 'La nueva fecha de retorno es obligatoria.' });
+  }
+
+  const requestId = parseInt(id);
+  const userId = req.user?.userId; // ID del usuario autenticado
+  const role = req.user?.role; // Rol del usuario autenticado
+
+  if (isNaN(requestId)) {
+    return res.status(400).json({ error: 'El ID de la solicitud debe ser un número válido.' });
+  }
+
+  try {
+    const updatedRequest = await requestModel.updateReturnDate(requestId, userId, role, newReturnDate);
+
+    return res.status(200).json({
+      message: 'Fecha de retorno actualizada con éxito.',
+      updatedRequest,
+    });
+  } catch (error) {
+    console.error('Error en updateReturnDate:', error.message);
+    return res.status(403).json({ error: error.message });
   }
 };
 
 module.exports = {
   createRequest,
-  getAllRequests,
+  getFilteredRequests,
   getRequestById,
-  updateRequest,
+  acceptRequest,
   deleteRequest,
   finalizeRequest,
+  updateReturnDate,
 };

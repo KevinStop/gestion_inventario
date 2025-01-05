@@ -1,10 +1,7 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
-import { UserService } from '../services/user.service';
-import { catchError } from 'rxjs/operators';
-import { throwError } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -12,64 +9,53 @@ import { throwError } from 'rxjs';
 export class ComponentService {
   private apiUrl = `${environment.apiUrl}/components`;
 
-  constructor(private http: HttpClient, private userService: UserService) { }
+  constructor(private http: HttpClient) {}
 
-  // Obtener todos los componentes (sin paginación)
+  // Obtener todos los componentes
   getComponents(): Observable<any> {
-    return this.http.get<any>(this.apiUrl);
+    return this.http.get<any>(this.apiUrl, { withCredentials: true });
   }
 
   // Obtener un componente por ID
   getComponentById(id: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+    return this.http.get<any>(`${this.apiUrl}/${id}`, { withCredentials: true });
   }
 
   // Crear un nuevo componente
   createComponent(component: any, imageFile?: File): Observable<any> {
-    const token = this.userService.getToken();
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
     const formData = new FormData();
     formData.append('name', component.name);
-    formData.append('categoryId', component.categoryId.toString());  // Cambiado a categoryId
+    formData.append('categoryId', component.categoryId.toString());
     formData.append('quantity', component.quantity.toString());
+    formData.append('reason', component.reason);
     if (component.description) formData.append('description', component.description);
     formData.append('isActive', component.isActive.toString());
     if (imageFile) formData.append('image', imageFile);
 
-    return this.http.post<any>(this.apiUrl, formData, { headers });
+    return this.http.post<any>(this.apiUrl, formData, { withCredentials: true });
   }
 
   // Actualizar un componente
   updateComponent(id: number, component: any, imageFile?: File): Observable<any> {
-    const token = this.userService.getToken();
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
     const formData = new FormData();
     formData.append('name', component.name);
     formData.append('categoryId', component.categoryId.toString());
     if (component.description) formData.append('description', component.description);
     formData.append('isActive', component.isActive.toString());
-  
-    // Solo agregar la imagen al FormData si está definida
-    if (imageFile) {
-      formData.append('image', imageFile);
-    }
-  
-    return this.http.put<any>(`${this.apiUrl}/${id}`, formData, { headers });
+    if (imageFile) formData.append('image', imageFile);
+
+    return this.http.put<any>(`${this.apiUrl}/${id}`, formData, { withCredentials: true });
   }
-  
 
   // Eliminar un componente
   deleteComponent(id: number): Observable<any> {
-    const token = this.userService.getToken();
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-  
-    return this.http.delete<any>(`${this.apiUrl}/${id}`, { headers });
+    return this.http.delete<any>(`${this.apiUrl}/${id}`, { withCredentials: true });
   }
 
   // Buscar componentes por nombre
   searchComponentsByName(name: string): Observable<any> {
     const params = new HttpParams().set('name', name);
-    return this.http.get<any>(this.apiUrl, { params });
+    return this.http.get<any>(this.apiUrl, { params, withCredentials: true });
   }
 
   // Filtrar componentes por categorías
@@ -88,5 +74,4 @@ export class ComponentService {
     const params = new HttpParams().set('status', status);
     return this.http.get<any>(`${this.apiUrl}`, { params });
   }
-
 }

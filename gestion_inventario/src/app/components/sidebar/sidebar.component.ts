@@ -16,19 +16,27 @@ import { Router } from '@angular/router';
 export class SidebarComponent implements OnInit {
 
   selectedComponentCount: number = 0;
+  userRole: string | null = null; // Rol del usuario
 
   constructor(private userService: UserService, private router: Router, private requestService: RequestService) {}
 
   ngOnInit(): void {
-
     this.updateComponentCount();
 
-    this.requestService.getSelectedComponents();
+    // Obtener el rol del usuario al inicializar el componente
+    this.userService.getUserDetails().subscribe(
+      (user) => {
+        this.userRole = user.role;
+      },
+      (error) => {
+        console.error('Error al obtener los detalles del usuario:', error);
+        this.userRole = null;
+      }
+    );
 
     setInterval(() => {
       this.updateComponentCount();
     }, 1000);
-
   }
 
   // Método para actualizar el conteo de componentes
@@ -44,10 +52,10 @@ export class SidebarComponent implements OnInit {
 
   // Métodos para verificar el rol
   isAdmin(): boolean {
-    return this.userService.isAdmin();
+    return this.userRole === 'admin';
   }
 
   isUser(): boolean {
-    return this.userService.isUser();
+    return this.userRole === 'user';
   }
 }

@@ -4,17 +4,27 @@ const path = require('path');
 const fs = require('fs');
 
 // Crear un componente
-const createComponent = async (req, res) => {
+const createComponentWithMovement = async (req, res) => {
   try {
     const data = req.body;
-    
+
     if (req.file) {
       data.imageUrl = `/uploads/${req.file.filename}`;
     }
-    const component = await componentModel.createComponent(data);
-    res.status(201).json(component);
+
+    // Validar los datos requeridos
+    if (!data.name || !data.quantity || !data.categoryId || !data.reason) {
+      return res.status(400).json({
+        error: 'Faltan campos obligatorios (name, quantity, categoryId, reason).',
+      });
+    }
+
+    // Llamar al método transaccional
+    const result = await componentModel.createComponentWithMovement(data);
+
+    res.status(201).json(result);
   } catch (error) {
-    console.error('Error al crear el componente:', error);
+    console.error('Error al crear el componente con movimiento:', error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -131,7 +141,7 @@ const getComponentCount = async (req, res) => {
 
 
 module.exports = {
-  createComponent,
+  createComponentWithMovement,
   getAllComponents,
   getComponentById,
   updateComponent,

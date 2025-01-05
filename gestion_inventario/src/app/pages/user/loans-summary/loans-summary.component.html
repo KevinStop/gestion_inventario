@@ -1,22 +1,26 @@
 <section class="bg-white py-8 antialiased dark:bg-gray-900 md:py-16">
-  <form action="#" class="mx-auto max-w-screen-xl px-4 2xl:px-0">
+  <form [formGroup]="formGroup" action="#" class="mx-auto max-w-screen-xl px-4 2xl:px-0">
     <div class="mx-auto max-w-3xl">
       <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">Solicitud</h2>
 
-      <div class="border-t border-gray-200 dark:border-gray-700 sm:mt-8">
-      </div>
+      <div class="border-t border-gray-200 dark:border-gray-700 sm:mt-8"></div>
 
       <div>
         <div class="relative overflow-x-auto border-b border-gray-200 dark:border-gray-800">
           <table class="w-full text-left font-medium text-gray-900 dark:text-white md:table-fixed">
-            <thead class="divide-y divide-gray-200 dark:divide-gray-800">
+            <thead>
               <tr>
                 <th class="whitespace-nowrap py-4">Componente</th>
                 <th class="whitespace-nowrap py-4 text-center">Cantidad</th>
                 <th class="whitespace-nowrap py-4 text-center">Acción</th>
               </tr>
+              <!-- Línea divisora -->
+              <tr>
+                <td colspan="3" class="border-t border-gray-200 dark:border-gray-800"></td>
+              </tr>
             </thead>
-            <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+            <tbody *ngIf="selectedComponents.length > 0; else noComponentsMessage"
+              class="divide-y divide-gray-200 dark:divide-gray-800">
               <tr *ngFor="let component of selectedComponents">
                 <td class="whitespace-nowrap py-4 md:w-[384px]">
                   <div class="flex items-center gap-4">
@@ -26,7 +30,9 @@
                   </div>
                 </td>
                 <td class="p-4 text-center text-base font-normal text-gray-900 dark:text-white">
-                  <input type="number" name="cantidad" [(ngModel)]="component.quantity"
+                  <!-- Usa ngModelOptions para marcar este campo como independiente -->
+                  <input type="number" name="cantidad" [(ngModel)]="component.quantity" 
+                    [ngModelOptions]="{standalone: true}" 
                     (change)="updateQuantity(component.id, component.quantity)" min="1"
                     class="mt-1 w-24 p-2 border border-gray-300 rounded-md dark:bg-gray-800 dark:text-white dark:border-gray-700 text-center" />
                 </td>
@@ -43,27 +49,89 @@
                   </button>
                 </td>
               </tr>
-            </tbody>
+            </tbody>            
           </table>
-          <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            for="multiple_files">Comprobante</label>
-          <input data-popover-target="popover-right" data-popover-placement="bottom" enctype="multipart/form-data"
-            class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
-            id="comprobante" type="file" accept=".png, .jpg, .jpeg, .pdf" (change)="onFileChange($event)" />
-          <label for="description" class="mt-4 block mb-2 text-sm font-medium text-gray-900 dark:text-white">Descripción
-            (Opcional)</label>
-          <textarea id="description" rows="4" [(ngModel)]="description" name="description"
-            class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-            placeholder="Descripcion mas detallada de la actividad o proyecto">
-          </textarea>
+
+          <!-- Línea divisora al final de la tabla -->
+          <hr class="mt-2 border-gray-200 dark:border-gray-800">
+
+          <!-- Mensaje para cuando no hay componentes seleccionados -->
+          <ng-template #noComponentsMessage>
+            <tr>
+              <td colspan="3" class="py-4 text-center text-gray-500 dark:text-gray-400">
+                No hay componentes seleccionados
+              </td>
+            </tr>
+          </ng-template>
         </div>
-        <div class="mt-4 space-y-6">
-          <div class="gap-4 sm:flex sm:items-center">
-            <button type="button"
-              class="w-full rounded-lg  border border-gray-200 bg-white px-5  py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700">Regresar</button>
-            <button (click)="submitRequest()" type="submit"
-              class="mt-4 flex w-full items-center justify-center rounded-lg bg-primary-700  px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300  dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 sm:mt-0">Solicitar
-              Prestamo</button>
+
+        <!-- Sección oculta hasta que haya componentes seleccionados -->
+        <div *ngIf="hasSelectedComponents()" class="mt-6 space-y-4">
+          <div>
+            <label for="typeRequest" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Tipo de préstamo:
+            </label>
+            <select id="typeRequest" formControlName="typeRequest" name="typeRequest"
+              class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:ring-primary-500 focus:border-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+              <option value="" disabled selected>Selecciona el tipo de préstamo</option>
+              <option value="general">General</option>
+              <option value="urgente">Urgente</option>
+              <option value="especial">Especial</option>
+            </select>
+            <p *ngIf="formGroup.get('typeRequest')?.hasError('required') && formGroup.get('typeRequest')?.touched"
+              class="text-red-500 text-sm">
+              El tipo de préstamo es obligatorio.
+            </p>
+          </div>
+
+          <div>
+            <label for="returnDate" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Fecha de retorno:
+            </label>
+            <input type="date" id="returnDate" formControlName="returnDate" name="returnDate"
+              class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:ring-primary-500 focus:border-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" />
+            <p *ngIf="formGroup.get('returnDate')?.hasError('required') && formGroup.get('returnDate')?.touched"
+              class="text-red-500 text-sm">
+              La fecha de retorno es obligatoria.
+            </p>
+            <p *ngIf="formGroup.get('returnDate')?.hasError('invalidDate') && formGroup.get('returnDate')?.touched"
+              class="text-red-500 text-sm">
+              La fecha de retorno debe ser igual o posterior a hoy.
+            </p>
+          </div>
+
+          <div>
+            <label class="block mb-2 text-sm font-medium text-gray-900 dark:text-white" for="comprobante">
+              Comprobante
+            </label>
+            <input id="comprobante" type="file" accept=".png, .jpg, .jpeg, .pdf" (change)="onFileChange($event)" name="comprobante" 
+              class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" />
+            <p *ngIf="formGroup.get('comprobante')?.hasError('required') && formGroup.get('comprobante')?.touched"
+              class="text-red-500 text-sm">
+              El comprobante es obligatorio.
+            </p>
+          </div>
+          <div>
+            <label for="description" class="mt-4 block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+              Descripción (Opcional):
+            </label>
+            <textarea id="description" rows="4" formControlName="description"
+              class="block p-2.5 w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+              placeholder="Descripción más detallada de la actividad o proyecto."></textarea>
+          </div>
+
+          <!-- Botones -->
+          <div class="mt-4 space-y-6">
+            <div class="gap-4 sm:flex sm:items-center">
+              <button type="button" routerLink="/home/viewComponents"
+                class="w-full rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-900 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:outline-none focus:ring-4 focus:ring-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white dark:focus:ring-gray-700">
+                Regresar
+              </button>
+              <button (click)="submitRequest()" type="submit"
+                class="mt-4 flex w-full items-center justify-center rounded-lg bg-primary-700 px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-800 focus:outline-none focus:ring-4 focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800 sm:mt-0">
+                Solicitar Prestamo
+              </button>
+            </div>
           </div>
         </div>
       </div>

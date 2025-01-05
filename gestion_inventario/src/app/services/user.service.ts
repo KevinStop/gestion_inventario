@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Router } from '@angular/router'; // Importar el Router
-import { Observable, BehaviorSubject, throwError } from 'rxjs';
+import { Router } from '@angular/router';
+import { Observable, BehaviorSubject, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
-import { jwtDecode } from 'jwt-decode';
 
 @Injectable({
   providedIn: 'root',
@@ -11,151 +11,78 @@ import { jwtDecode } from 'jwt-decode';
 export class UserService {
   private apiUrl = `${environment.apiUrl}/users`;
   private sessionExpiringSubject = new BehaviorSubject<boolean>(false);
-  private expirationWarningTime = 5 * 60 * 1000;
+  private expirationWarningTime = 5 * 60 * 1000; // 5 minutos
 
-  constructor(private http: HttpClient, private router: Router) { }
-
-  // Obtener el rol del usuario desde el token JWT
-  getUserRole(): string | null {
-    const token = this.getToken();
-    if (!token) return null;
-
-    const decodedToken: any = jwtDecode(token);
-    return decodedToken.role;
-  }
-
-  // Obtener el nombre de usuario desde el token JWT
-  getUsername(): string | null {
-    const token = this.getToken();
-    if (!token) return null;
-
-    const decodedToken: any = jwtDecode(token);
-    return decodedToken.username;
-  }
+  constructor(private http: HttpClient, private router: Router) {}
 
   // Registro de usuario
   register(userData: any): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/register`, userData);
+    return this.http.post<any>(`${this.apiUrl}/register`, userData, { withCredentials: true });
   }
 
-  // Login de usuario (con email y password)
+  // Login de usuario
   login(credentials: { email: string; password: string }): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/login`, credentials);
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials, { withCredentials: true });
   }
 
-  // Autenticación con Google OAuth
-  googleLogin(idToken: string): Observable<any> {
-    return this.http.post<any>(`${this.apiUrl}/auth/google/callback`, { token: idToken });
+  // Obtener detalles del usuario autenticado
+  getUserDetails(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/me`, { withCredentials: true });
   }
 
-  // Guardar token en localStorage (tras login exitoso)
-  saveToken(token: string): void {
-    localStorage.setItem('auth_token', token);
+  // Extender sesión
+  extendSession(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/extend-session`, {}, { withCredentials: true });
   }
 
-  // Obtener token desde localStorage
-  getToken(): string | null {
-    return localStorage.getItem('auth_token');
+  // Logout del usuario
+  logout(): void {
+    this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).subscribe({
+      next: () => {
+        localStorage.removeItem('selectedComponents'); // Limpiar los componentes seleccionados
+        this.router.navigate(['/']); // Redirigir al login
+      },
+      error: (err) => {
+        console.error('Error al cerrar sesión:', err);
+        localStorage.removeItem('selectedComponents'); // Asegurarse de limpiar aunque haya un error
+      },
+    });
+  }  
+
+  // Verificar autenticación
+  isAuthenticated(): Observable<boolean> {
+    return this.http.get<boolean>(`${this.apiUrl}/authenticated`, { withCredentials: true });
   }
 
-  // Obtener el tiempo restante hasta la expiración del token en milisegundos
-  getRemainingTime(): number {
-    const token = this.getToken();
-    if (!token) return 0;
-
-    const decodedToken: any = jwtDecode(token);
-    const currentTime = Date.now() / 1000; // tiempo actual en segundos
-    const expirationTime = decodedToken.exp * 1000; // expiración en milisegundos
-
-    return expirationTime - currentTime * 1000;
+  // Obtener el tiempo restante de la sesión
+  getRemainingTime(): Observable<number> {
+    return this.http.get<{ remainingTime: number }>(`${this.apiUrl}/session-time`, { withCredentials: true }).pipe(
+      map((response) => response.remainingTime),
+      catchError(() => {
+        console.error('Error al obtener el tiempo restante de la sesión.');
+        return of(0); // Asumimos que la sesión ha expirado si hay un error
+      })
+    );
   }
 
-  // Método que verifica si la sesión está por expirar y emite una notificación
-  checkSessionExpiration() {
-    const remainingTime = this.getRemainingTime();
-
-    if (remainingTime <= 0) {
-      // Si el token ha expirado, cerrar sesión y redirigir al login
-      this.logout();
-      this.router.navigate(['/']); // Redirigir al login
-    } else if (remainingTime < this.expirationWarningTime) {
-      // Si queda menos de 5 minutos para la expiración, emitir la advertencia
-      this.sessionExpiringSubject.next(true);
-    }
-
-    // Continuar verificando cada segundo
-    setTimeout(() => this.checkSessionExpiration(), 1000);
+  // Verificar si la sesión está por expirar
+  checkSessionExpiration(): void {
+    this.getRemainingTime().subscribe((remainingTime: number) => {
+      if (remainingTime <= this.expirationWarningTime) {
+        this.sessionExpiringSubject.next(true); // Notificar al componente
+      } else {
+        this.sessionExpiringSubject.next(false); // Resetear advertencias si la sesión tiene tiempo suficiente
+      }
+    });
   }
 
-  // Iniciar la comprobación de expiración
-  startSessionExpirationCheck() {
-    this.checkSessionExpiration();
+  // Iniciar el monitoreo de expiración de sesión
+  startSessionExpirationCheck(): void {
+    setInterval(() => this.checkSessionExpiration(), 1000); // Verificar cada segundo
   }
 
-  // Obtener si la sesión está por expirar
+  // Observable para advertencias de sesión
   isSessionExpiring(): Observable<boolean> {
     return this.sessionExpiringSubject.asObservable();
   }
-
-  // Extender la sesión (renovar el token)
-  extendSession(): Observable<any> {
-    const token = this.getToken();
-    if (!token) {
-      // Si no hay token, no permitimos la acción
-      return throwError('No token provided');
-    }
-
-    // Configuramos las cabeceras correctamente para enviar el token
-    const headers = {
-      Authorization: `Bearer ${token}`,
-    };
-
-    return this.http.post<any>(`${this.apiUrl}/extend-session`, { token }, { headers });
-  }
-
-
-  // Eliminar token de localStorage (logout)
-  logout(): void {
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('selectedComponents');
-  }
-
-  // Verificar si el token ha expirado
-  isAuthenticated(): boolean {
-    const token = this.getToken();
-    if (!token) return false;
-
-    const decodedToken: any = jwtDecode(token);
-    const currentTime = Date.now() / 1000; // El tiempo actual en segundos
-
-    return decodedToken.exp > currentTime; // Verifica que el token no haya expirado
-  }
-
-  // Verificar si el usuario tiene un rol específico
-  hasRole(role: string): boolean {
-    const userRole = this.getUserRole();
-    return userRole === role;
-  }
-
-  // Método para obtener si el usuario es un administrador
-  isAdmin(): boolean {
-    const role = this.getUserRole();
-    return role === 'admin';
-  }
-
-  // Método para obtener si el usuario es un usuario regular
-  isUser(): boolean {
-    const role = this.getUserRole();
-    return role === 'user';
-  }
-
-  // Obtener el ID del usuario desde el token JWT
-  getUserId(): string | null {
-    const token = this.getToken();
-    if (!token) return null;
-
-    const decodedToken: any = jwtDecode(token); // Decodifica el JWT
-    return decodedToken.userId || null; // Devuelve el userId desde el payload
-  }
-
 }

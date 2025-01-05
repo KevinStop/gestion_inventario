@@ -6,13 +6,13 @@ export const routes: Routes = [
   {
     path: '',
     loadComponent: () => import('./pages/authentication/login/login.component'),
-    pathMatch: 'full',
     canActivate: [UnauthGuard],
+    pathMatch: 'full',
   },
   {
     path: 'register',
     loadComponent: () => import('./pages/authentication/register/register.component'),
-    canActivate: [UnauthGuard], 
+    canActivate: [UnauthGuard],
   },
   {
     path: 'home',
@@ -61,8 +61,30 @@ export const routes: Routes = [
         data: { role: 'user' },
       },
       {
+        path: 'requestView',
+        loadComponent: () => import('./pages/user/request-view/request-view.component'),
+        canActivate: [AuthGuard],
+        data: { role: 'user' },
+      },
+      {
+        path: 'requestDetails',
+        loadComponent: () => import('./pages/user/request-details/request-details.component'),
+        canActivate: [AuthGuard],
+        data: { role: 'user' },
+      },
+      {
+        path: 'userProfile',
+        loadComponent: () => import('./pages/authentication/user-profile/user-profile.component'),
+        canActivate: [AuthGuard],
+      },
+      {
+        path: '404',
+        loadComponent: () => import('./components/page-not-found/page-not-found.component'),
+        canActivate: [AuthGuard],
+      },
+      {
         path: '',
-        redirectTo: 'electronicComponent',
+        redirectTo: '404',
         pathMatch: 'full',
       },
     ],

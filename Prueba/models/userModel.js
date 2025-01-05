@@ -51,28 +51,6 @@ const verifyUserCredentials = async (email, password) => {
   }
 };
 
-// Obtener todos los usuarios
-const getAllUsers = async () => {
-  try {
-    const users = await prisma.user.findMany();
-    return users;
-  } catch (error) {
-    throw new Error('Error al obtener los usuarios');
-  }
-};
-
-// Obtener un usuario por su ID
-const getUserById = async (id) => {
-  try {
-    const user = await prisma.user.findUnique({
-      where: { userId: Number(id) },
-    });
-    return user;
-  } catch (error) {
-    throw new Error('Error al obtener el usuario');
-  }
-};
-
 // Actualizar un usuario por su ID
 const updateUser = async (id, data) => {
   try {
@@ -99,11 +77,28 @@ const deactivateUser = async (id) => {
   }
 };
 
+const getUserById = async (id) => {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { userId: id },
+      select: { userId: true, email: true, name: true, role: true }, // Seleccionar solo los campos necesarios
+    });
+
+    if (!user) {
+      throw new Error('Usuario no encontrado');
+    }
+
+    return user;
+  } catch (error) {
+    console.error('Error al obtener el usuario por ID:', error);
+    throw new Error(error.message || 'Hubo un problema al obtener el usuario');
+  }
+};
+
 module.exports = {
   createUser,
-  getAllUsers,
-  getUserById,
   updateUser,
   deactivateUser,
   verifyUserCredentials,
+  getUserById,
 };

@@ -52,30 +52,29 @@ model Category {
 }
 
 model Request {
-  requestId       Int              @id @default(autoincrement()) @map("request_id")
-  userId          Int              @map("user_id")
-  status          RequestStatus    @default(pendiente)
-  returnDate      DateTime?
-  description     String?
-  adminNotes      String?
-  fileUrl         String?          @db.VarChar(255)
-  isActive        Boolean          @default(true) @map("is_active")
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-  academicPeriodId Int?
+  requestId           Int                 @id @default(autoincrement()) @map("request_id")
+  userId              Int                 @map("user_id")
+  typeRequest         String             
+  status              RequestStatus       @default(pendiente)
+  returnDate          DateTime?
+  description         String?
+  adminNotes          String?
+  fileUrl             String?             @db.VarChar(255)
+  isActive            Boolean             @default(true) @map("is_active")
+  createdAt           DateTime            @default(now()) @map("created_at")
+  updatedAt           DateTime            @updatedAt @map("updated_at")
 
-  user            User             @relation(fields: [userId], references: [userId])
-  requestDetails  RequestDetail[]
-  loanHistories   LoanHistory[]
-  academicPeriod  AcademicPeriod?  @relation(fields: [academicPeriodId], references: [id])
+  user                User                @relation(fields: [userId], references: [userId])
+  requestDetails      RequestDetail[]
+  loanHistories       LoanHistory[]
+  relatedPeriods      RequestPeriod[]     @relation("RequestPeriods")
 }
+
 
 enum RequestStatus {
   pendiente
-  aprobado
-  rechazado
-  prestado
-  devuelto
+  prestamo
+  finalizado
 }
 
 model RequestDetail {
@@ -129,14 +128,25 @@ enum MovementType {
 }
 
 model AcademicPeriod {
-  id              Int                @id @default(autoincrement())
-  name            String             @unique @db.VarChar(255) // Ejemplo: "2024-1"
-  startDate       DateTime
-  endDate         DateTime
-  isActive        Boolean            @default(false) // Indica si el periodo está activo
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
+  id                  Int                 @id @default(autoincrement())
+  name                String              @unique @db.VarChar(255) // Ejemplo: "2024-1"
+  startDate           DateTime
+  endDate             DateTime
+  isActive            Boolean             @default(false) // Indica si el periodo está activo
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
 
-  requests        Request[]
-  componentMovements ComponentMovement[]
+  requestPeriods      RequestPeriod[]    // Relación con RequestPeriod
+  componentMovements  ComponentMovement[]
+}
+
+model RequestPeriod {
+  id                  Int                 @id @default(autoincrement())
+  requestId           Int                 @map("request_id")
+  academicPeriodId    Int                 @map("academic_period_id")
+  typeDate            String
+  requestPeriodDate   DateTime?
+
+  request             Request             @relation(fields: [requestId], references: [requestId], name: "RequestPeriods")
+  academicPeriod      AcademicPeriod      @relation(fields: [academicPeriodId], references: [id])
 }

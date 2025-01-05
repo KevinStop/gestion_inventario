@@ -1,55 +1,54 @@
 import { Component, OnInit } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Modal, initFlowbite } from 'flowbite';
 import { ComponentService } from '../../../services/component.service';
 import { CategoryService } from '../../../services/category.service';
+import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 
 @Component({
   selector: 'app-electronic-component',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './electronic-component.component.html',
   styleUrls: ['./electronic-component.component.css'],
 })
 export default class ElectronicComponentComponent implements OnInit {
-  createModal?: Modal;
-  successModal?: Modal;
   components: any[] = [];
-  isDeleteModalOpen: boolean = false;
-  componentIdToDelete: number | null = null;
   selectedImage: File | undefined = undefined;
   imagePreviewUrl: string | undefined = undefined;
-  selectedComponent: any = { name: '', categoryId: '', description: '', isActive: false };
   searchTerm: string = '';
   selectedCategories: string[] = [];
   categories: any[] = [];
   newCategory: any = { name: '' };
   selectedCategory: any = { name: '' };
-  successMessage: string = '';
   isDrawerOpen: boolean = false;
   selectedStatus: string | null = null;
-  categoryIdToDelete: number | null = null;
   deleteItemType: string = '';
   isEditingCategory: boolean = false;
+  updateForm: FormGroup;
+  categoryForm: FormGroup;
 
-  constructor(private componentService: ComponentService, private categoryService: CategoryService) { }
+  constructor(private componentService: ComponentService, private categoryService: CategoryService, private sweetalertService: SweetalertService,
+    private formBuilder: FormBuilder,
+  ) {
+    this.updateForm = this.formBuilder.group({
+      id: [null],
+      name: ['', [Validators.required, Validators.minLength(3)]],
+      description: ['', [Validators.required, Validators.minLength(10)]],
+      categoryId: ['', [Validators.required]],
+      isActive: [true, [Validators.required]]
+    });
+    this.categoryForm = this.formBuilder.group({
+      name: ['', [Validators.required, Validators.minLength(3)]],
+    });
+  }
 
   ngOnInit(): void {
     initFlowbite();
 
     this.getCategories();
-
     this.getComponents();
-
-    const successModalElement = document.querySelector('#successModal') as HTMLElement;
-    this.successModal = new Modal(successModalElement);
-
-    const continueButton = document.querySelector('#continueButton') as HTMLElement;
-    continueButton.addEventListener('click', () => {
-      this.successModal?.hide();
-    });
-
   }
 
   // Método para obtener todos los componentes
@@ -107,77 +106,70 @@ export default class ElectronicComponentComponent implements OnInit {
   }
 
   openDrawerForUpdate(component: any): void {
-    this.selectedComponent = { ...component };
+    this.updateForm.patchValue({
+      id: component.id,
+      name: component.name,
+      description: component.description,
+      categoryId: component.categoryId,
+      isActive: component.isActive
+    });
     this.isDrawerOpen = true;
   }
 
   updateComponent(): void {
-    if (this.selectedComponent && this.selectedComponent.id) {
-      this.componentService.updateComponent(this.selectedComponent.id, this.selectedComponent, this.selectedImage).subscribe(
-        (data) => {
-          const index = this.components.findIndex((component) => component.id === data.id);
-          if (index !== -1) {
-            this.components[index] = data;
-          }
-          this.getComponents();
-          this.closeDrawer();
-          this.successMessage = 'Componente actualizado satisfactoriamente.';
-          setTimeout(() => {
-            this.successModal?.show();
-          }, 300);
-        },
-        (error) => {
-          console.error('Error al actualizar el componente:', error);
-          alert('Hubo un error al intentar actualizar el componente');
-        }
-      );
+    if (this.updateForm.invalid) {
+      this.sweetalertService.error('Por favor, complete todos los campos correctamente.');
+      return;
     }
-  }
+  
+    const updatedComponent = this.updateForm.value;
+  
+    if (!updatedComponent.id) {
+      console.error('ID del componente no encontrado.');
+      this.sweetalertService.error('Error al obtener el componente.');
+      return;
+    }
+  
+    this.componentService.updateComponent(updatedComponent.id, updatedComponent, this.selectedImage).subscribe(
+      () => {
+        this.getComponents();
+        this.isDrawerOpen = false;
+        this.sweetalertService.success('Componente actualizado satisfactoriamente.');
+      },
+      (error) => {
+        console.error('Error al actualizar el componente:', error);
+        this.sweetalertService.error('Hubo un error al intentar actualizar el componente.');
+      }
+    );
+  }  
 
   openDeleteModal(id: number, isCategory: boolean): void {
-    this.isDeleteModalOpen = true;
-    if (isCategory) {
-      this.deleteItemType = 'esta categoría';
-      this.categoryIdToDelete = id;
-    } else {
-      this.deleteItemType = 'este componente';
-      this.componentIdToDelete = id;
-    }
-  }   
+    this.deleteItemType = isCategory ? 'esta categoría' : 'este componente';
+    const message = `¿Estás seguro de que deseas eliminar ${this.deleteItemType}?`;
 
-  closeDeleteModal(): void {
-    this.isDeleteModalOpen = false;
-    this.componentIdToDelete = null;
-    this.categoryIdToDelete = null;
+    this.sweetalertService.confirm(message).then((result) => {
+      if (result.isConfirmed) {
+        if (isCategory) {
+          this.deleteCategory(id);
+        } else {
+          this.deleteComponent(id);
+        }
+      }
+    });
   }
 
-  confirmDelete(): void {
-    if (this.componentIdToDelete !== null) {
-      this.componentService.deleteComponent(this.componentIdToDelete).subscribe(
-        () => {
-          this.components = this.components.filter((component) => component.id !== this.componentIdToDelete);
-          this.closeDeleteModal();
-          alert('Componente eliminado con éxito');
-        },
-        (error) => {
-          console.error('Error al eliminar el componente:', error);
-          alert('Hubo un error al intentar eliminar el componente');
-        }
-      );
-    } else if (this.categoryIdToDelete !== null) {
-      this.categoryService.deleteCategory(this.categoryIdToDelete).subscribe(
-        () => {
-          this.categories = this.categories.filter((category) => category.id !== this.categoryIdToDelete);
-          this.closeDeleteModal();
-          alert('Categoría eliminada con éxito');
-        },
-        (error) => {
-          console.error('Error al eliminar la categoría:', error);
-          alert('Hubo un error al intentar eliminar la categoría');
-        }
-      );
-    }
-  }  
+  deleteComponent(id: number): void {
+    this.componentService.deleteComponent(id).subscribe(
+      () => {
+        this.components = this.components.filter((component) => component.id !== id);
+        this.sweetalertService.success('Componente eliminado con éxito.');
+      },
+      (error) => {
+        console.error('Error al eliminar el componente:', error);
+        this.sweetalertService.error('Hubo un error al intentar eliminar el componente.');
+      }
+    );
+  }
 
   getFilteredComponents(): void {
     if (this.selectedCategories.length > 0) {
@@ -210,18 +202,22 @@ export default class ElectronicComponentComponent implements OnInit {
 
   // Método para crear la categoría
   createCategory(): void {
-    this.categoryService.createCategory(this.newCategory).subscribe(
+    if (this.categoryForm.invalid) {
+      this.sweetalertService.error('El nombre de la categoría no puede estar vacío ni menor a 3 caracteres.');
+      return;
+    }
+
+    const newCategory = this.categoryForm.value;
+
+    this.categoryService.createCategory(newCategory).subscribe(
       (response) => {
-        console.log('Categoría creada:', response);
         this.categories.push(response);
-        this.newCategory.name = '';
-        this.successMessage = 'Categoría creada satisfactoriamente.';
-        setTimeout(() => {
-          this.successModal?.show();
-        }, 300);
+        this.sweetalertService.success('Categoría creada satisfactoriamente.');
+        this.categoryForm.reset(); // Limpiar el formulario
       },
       (error) => {
         console.error('Error al crear la categoría:', error);
+        this.sweetalertService.error('Hubo un error al intentar crear la categoría.');
       }
     );
   }
@@ -258,39 +254,18 @@ export default class ElectronicComponentComponent implements OnInit {
     }
   }
 
-  // Método para actualizar una categoría
-  updateCategory(): void {
-    if (this.selectedCategory && this.selectedCategory.id) {
-      this.categoryService.updateCategory(this.selectedCategory.id, this.selectedCategory).subscribe(
-        (response) => {
-          const index = this.categories.findIndex((category) => category.id === response.id);
-          if (index !== -1) {
-            this.categories[index] = response;
-          }
-        },
-        (error) => {
-          console.error('Error al actualizar la categoría:', error);
-          alert('Hubo un error al intentar actualizar la categoría');
-        }
-      );
-    }
-  }
-
-  // Método para eliminar una categoría
-  deleteCategory(): void {
-    if (this.categoryIdToDelete !== null) {
-      this.categoryService.deleteCategory(this.categoryIdToDelete).subscribe(
-        () => {
-          this.categories = this.categories.filter((category) => category.id !== this.categoryIdToDelete);
-          this.closeDeleteModal();
-          alert('Categoría eliminada con éxito');
-        },
-        (error) => {
-          console.error('Error al eliminar la categoría:', error);
-          alert('Hubo un error al intentar eliminar la categoría');
-        }
-      );
-    }
+  // Eliminar categoría
+  deleteCategory(id: number): void {
+    this.categoryService.deleteCategory(id).subscribe(
+      () => {
+        this.categories = this.categories.filter((category) => category.id !== id);
+        this.sweetalertService.success('Categoría eliminada con éxito.');
+      },
+      (error) => {
+        console.error('Error al eliminar la categoría:', error);
+        this.sweetalertService.error('Hubo un error al intentar eliminar la categoría.');
+      }
+    );
   }
 
   // Función para habilitar la edición del nombre de la categoría
@@ -305,9 +280,9 @@ export default class ElectronicComponentComponent implements OnInit {
       (response) => {
         const index = this.categories.findIndex((category) => category.id === response.id);
         if (index !== -1) {
-          this.categories[index] = response;  
+          this.categories[index] = response;
         }
-        this.isEditingCategory = false; 
+        this.isEditingCategory = false;
       },
       (error) => {
         console.error('Error al actualizar la categoría:', error);

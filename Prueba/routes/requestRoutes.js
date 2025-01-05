@@ -34,10 +34,11 @@ const validateRequestData = (req, res, next) => {
 };
 
 router.post('/', upload.single('file'), validateRequestData, requestController.createRequest);
-router.get('/', requestController.getAllRequests);
+router.get('/', requestController.getFilteredRequests);
 router.get('/:id', requestController.getRequestById);
-router.put('/:id', requestController.updateRequest);
+router.put('/:id', requestController.acceptRequest);
 router.delete('/:id', requestController.deleteRequest);
 router.put('/:id/finalize', requestController.finalizeRequest);
+router.put('/:id/return-date', requestController.updateReturnDate);
 
 module.exports = router;

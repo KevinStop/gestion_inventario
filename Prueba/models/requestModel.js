@@ -1,48 +1,30 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-// Crear una solicitud
+// Crear una solicitud 
 const createRequest = async (data, requestDetails) => {
   if (!data.userId) {
     throw new Error('El campo userId es obligatorio para crear una solicitud.');
   }
 
   try {
-    // Obtener el periodo académico activo si no se proporciona `academicPeriodId`
-    let activeAcademicPeriodId = data.academicPeriodId;
-    if (!activeAcademicPeriodId) {
-      const activePeriod = await prisma.academicPeriod.findFirst({
-        where: { isActive: true },
+    const request = await prisma.$transaction(async (prisma) => {
+      return await prisma.request.create({
+        data: {
+          user: { connect: { userId: data.userId } },
+          typeRequest: data.typeRequest,
+          status: data.status || 'pendiente',
+          description: data.description || null,
+          fileUrl: data.fileUrl || null,
+          returnDate: data.returnDate,
+          requestDetails: {
+            create: requestDetails.map((detail) => ({
+              component: { connect: { id: detail.componentId } },
+              quantity: detail.quantity,
+            })),
+          },
+        },
       });
-
-      if (!activePeriod) {
-        throw new Error('No hay un periodo académico activo. No se puede crear la solicitud.');
-      }
-
-      activeAcademicPeriodId = activePeriod.id;
-    }
-
-    // Crear la solicitud
-    const request = await prisma.request.create({
-      data: {
-        user: {
-          connect: { userId: data.userId }, // Conecta al usuario por userId
-        },
-        status: data.status || 'pendiente', // Estado por defecto
-        description: data.description, // Descripción de la solicitud
-        fileUrl: data.fileUrl, // Aquí agregas el fileUrl (si existe)
-        academicPeriod: {
-          connect: { id: activeAcademicPeriodId }, // Conecta el periodo académico activo
-        },
-        requestDetails: {
-          create: requestDetails.map((detail) => ({
-            component: {
-              connect: { id: detail.componentId }, // Conecta el componente por ID
-            },
-            quantity: detail.quantity, // Cantidad del componente
-          })),
-        },
-      },
     });
 
     return request;
@@ -52,18 +34,31 @@ const createRequest = async (data, requestDetails) => {
   }
 };
 
-// Obtener todas las solicitudes
-const getAllRequests = async () => {
+// Obtener todas las solicitudes activas
+const getFilteredRequests = async (filters = {}) => {
   try {
+    const { userId, status, isActive } = filters;
+
     const requests = await prisma.request.findMany({
+      where: {
+        ...(userId && { userId }), // Filtrar por usuario, si se proporciona
+        ...(status && { status }), // Filtrar por estado, si se proporciona
+        ...(isActive !== undefined && { isActive }), // Filtrar por actividad, si se proporciona
+      },
       include: {
         user: true, // Incluye los datos del usuario
-        requestDetails: true, // Incluye los detalles de los componentes solicitados
+        requestDetails: {
+          include: {
+            component: true, // Incluye los detalles de los componentes solicitados
+          },
+        },
       },
     });
+
     return requests;
   } catch (error) {
-    throw new Error('Error al obtener las solicitudes');
+    console.error('Error en getFilteredRequests:', error.message);
+    throw new Error('Error al obtener las solicitudes con filtros.');
   }
 };
 
@@ -83,103 +78,192 @@ const getRequestById = async (id) => {
   }
 };
 
-// Actualizar una solicitud por ID (aceptar/rechazar solicitud)
-const updateRequest = async (id, data) => {
+// Actualizar una solicitud por ID (aceptar solicitud)
+const acceptRequest = async (requestId) => {
   try {
-    // Obtener la solicitud antes de actualizarla para ver los detalles
-    const request = await prisma.request.findUnique({
-      where: { requestId: Number(id) },
-      include: {
-        requestDetails: true, // Incluye los detalles de los componentes solicitados
-      },
-    });
-
-    // Si la solicitud es rechazada, eliminamos la solicitud
-    if (data.status === 'rechazada') {
-      await prisma.request.delete({
-        where: { requestId: Number(id) },
+    return await prisma.$transaction(async (prisma) => {
+      // Verificar si la solicitud existe y está en estado pendiente
+      const existingRequest = await prisma.request.findUnique({
+        where: { requestId },
       });
-      return { message: "Solicitud rechazada y eliminada" };
-    }
 
-    // Si la solicitud es aceptada, actualizamos las cantidades de los componentes
-    if (data.status === 'aceptada' && request.status !== 'aceptada') {
-      for (const detail of request.requestDetails) {
-        await prisma.component.update({
-          where: { id: detail.componentId },
-          data: {
-            quantity: {
-              decrement: detail.quantity, // Reducir la cantidad de los componentes
-            },
-          },
-        });
+      if (!existingRequest) {
+        throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
       }
-    }
 
-    // Actualizar el estado de la solicitud
-    const updatedRequest = await prisma.request.update({
-      where: { requestId: Number(id) },
-      data: data,
+      if (existingRequest.status !== 'pendiente') {
+        throw new Error('Solo las solicitudes en estado pendiente pueden ser aceptadas.');
+      }
+
+      // Verificar el periodo académico activo
+      const activePeriod = await prisma.academicPeriod.findFirst({
+        where: { isActive: true },
+      });
+
+      if (!activePeriod) {
+        throw new Error('No hay un periodo académico activo. No se puede aceptar la solicitud.');
+      }
+
+      // Actualizar el estado de la solicitud a "prestamo"
+      const updatedRequest = await prisma.request.update({
+        where: { requestId },
+        data: {
+          status: 'prestamo',
+        },
+      });
+
+      // Crear el registro en requestPeriod
+      await prisma.requestPeriod.create({
+        data: {
+          request: { connect: { requestId } },
+          academicPeriod: { connect: { id: activePeriod.id } },
+          typeDate: 'inicio',
+          requestPeriodDate: new Date(),
+        },
+      });
+
+      return updatedRequest;
     });
-
-    return updatedRequest;
   } catch (error) {
-    throw new Error('Error al actualizar la solicitud');
+    console.error('Error en acceptRequest:', error.message);
+    throw new Error('Error al aceptar la solicitud: ' + error.message);
   }
 };
 
 // Eliminar una solicitud por ID
-const deleteRequest = async (id) => {
+const deleteRequest = async (requestId, userId, role) => {
   try {
+    // Verificar permisos y obtener la solicitud
+    const request = await checkRequestPermissions(requestId, userId, role);
+
+    if (role === 'user' && request.status !== 'pendiente') {
+      throw new Error('Solo puedes eliminar solicitudes en estado "pendiente".');
+    }
+
+    // Eliminar la solicitud
     const deletedRequest = await prisma.request.delete({
-      where: { requestId: Number(id) },
+      where: { requestId },
     });
+
     return deletedRequest;
   } catch (error) {
-    throw new Error('Error al eliminar la solicitud');
+    console.error('Error en deleteRequest:', error.message);
+    throw new Error('Error al eliminar la solicitud: ' + error.message);
   }
 };
 
 // Finalizar una solicitud y reponer los componentes
-const finalizeRequest = async (id) => {
+const finalizeRequest = async (requestId) => {
   try {
-    // Obtener la solicitud para ver los detalles de los componentes
-    const request = await prisma.request.findUnique({
-      where: { requestId: Number(id) },
-      include: {
-        requestDetails: true,
-      },
-    });
+    const result = await prisma.$transaction(async (prisma) => {
+      // Verificar si la solicitud existe y está activa
+      const existingRequest = await prisma.request.findUnique({
+        where: { requestId },
+      });
 
-    // Reponer los componentes cuando la solicitud es finalizada
-    for (const detail of request.requestDetails) {
-      await prisma.component.update({
-        where: { id: detail.componentId },
+      if (!existingRequest) {
+        throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
+      }
+
+      if (existingRequest.status === 'finalizado') {
+        throw new Error('La solicitud ya está finalizada.');
+      }
+
+      // Obtener el periodo académico activo
+      const activePeriod = await prisma.academicPeriod.findFirst({
+        where: { isActive: true },
+      });
+
+      if (!activePeriod) {
+        throw new Error('No hay un periodo académico activo. No se puede finalizar la solicitud.');
+      }
+
+      // Actualizar la solicitud a finalizado
+      const updatedRequest = await prisma.request.update({
+        where: { requestId },
         data: {
-          quantity: {
-            increment: detail.quantity, // Reponer la cantidad de los componentes
-          },
+          status: 'finalizado',
+          isActive: false,
         },
       });
+
+      // Crear un nuevo registro en requestPeriod con el tipo "fin"
+      const requestPeriod = await prisma.requestPeriod.create({
+        data: {
+          request: { connect: { requestId: updatedRequest.requestId } },
+          academicPeriod: { connect: { id: activePeriod.id } },
+          typeDate: 'fin',
+          requestPeriodDate: new Date(),
+        },
+      });
+
+      return { updatedRequest, requestPeriod };
+    });
+
+    return result;
+  } catch (error) {
+    console.error('Error en finalizeRequest:', error.message);
+    throw new Error('Error al finalizar la solicitud: ' + error.message);
+  }
+};
+
+const updateReturnDate = async (requestId, userId, role, newReturnDate) => {
+  try {
+    // Verificar permisos y obtener la solicitud
+    const request = await checkRequestPermissions(requestId, userId, role);
+
+    if (request.status !== 'prestamo') {
+      throw new Error('Solo se puede actualizar la fecha de retorno para solicitudes en estado "prestamo".');
     }
 
-    // Actualizar el estado de la solicitud a finalizada
+    // Actualizar la fecha de retorno
     const updatedRequest = await prisma.request.update({
-      where: { requestId: Number(id) },
-      data: { status: 'finalizada' },
+      where: { requestId },
+      data: {
+        returnDate: new Date(newReturnDate),
+      },
     });
 
     return updatedRequest;
   } catch (error) {
-    throw new Error('Error al finalizar la solicitud');
+    console.error('Error en updateReturnDate:', error.message);
+    throw new Error('Error al actualizar la fecha de retorno: ' + error.message);
+  }
+};
+
+const checkRequestPermissions = async (requestId, userId, role) => {
+  try {
+    const request = await prisma.request.findUnique({
+      where: { requestId },
+    });
+
+    if (!request) {
+      throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
+    }
+
+    // Validar permisos
+    if (role === 'user' && request.userId !== userId) {
+      throw new Error('No tienes permiso para modificar esta solicitud.');
+    }
+
+    if (role === 'admin' && !request.isActive) {
+      throw new Error('Solo se pueden modificar solicitudes activas.');
+    }
+
+    return request; // Devuelve la solicitud si pasa las validaciones
+  } catch (error) {
+    console.error('Error en checkRequestPermissions:', error.message);
+    throw new Error('Permiso denegado: ' + error.message);
   }
 };
 
 module.exports = {
   createRequest,
-  getAllRequests,
+  getFilteredRequests,
   getRequestById,
-  updateRequest,
+  acceptRequest,
   deleteRequest,
   finalizeRequest,
+  updateReturnDate,
+  checkRequestPermissions,
 };

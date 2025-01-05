@@ -30,26 +30,27 @@ export default class RegisterComponent {
       alert('Las contraseñas no coinciden');
       return;
     }
-  
-    // Enviar todos los datos necesarios: email, password, confirmPassword y name
+
+    // Crear un objeto con los datos necesarios (eliminar `confirmPassword`)
     const userData = {
       email: this.userData.email,
       password: this.userData.password,
-      confirmPassword: this.userData.confirmPassword,
-      name: this.userData.name,
+      name: this.userData.name
     };
-  
+
     this.userService.register(userData).subscribe(
-      (response) => {
+      () => {
+        alert('Registro exitoso. Ahora puedes iniciar sesión.');
         this.router.navigate(['/']);
       },
       (error) => {
-        console.error('Error al registrar el usuario', error);
-        // Mostrar el mensaje de error detallado
-        const errorMessage = error.error?.message || 'Hubo un problema al registrar el usuario, por favor intenta nuevamente.';
+        console.error('Error al registrar el usuario:', error);
+
+        // Mostrar mensaje de error detallado
+        const errorMessage =
+          error.error?.message || 'Hubo un problema al registrar el usuario. Por favor, intenta nuevamente.';
         alert(errorMessage);
       }
     );
-  }  
-  
+  }
 }

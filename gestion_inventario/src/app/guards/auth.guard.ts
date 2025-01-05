@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { CanActivate, ActivatedRouteSnapshot, RouterStateSnapshot, Router } from '@angular/router';
 import { UserService } from '../services/user.service';
+import { Observable, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
@@ -8,19 +10,27 @@ import { UserService } from '../services/user.service';
 export class AuthGuard implements CanActivate {
   constructor(private userService: UserService, private router: Router) {}
 
-  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean {
-    if (!this.userService.isAuthenticated()) {
-      this.router.navigate(['/login']);
-      return false;
-    }
-  
-    const role = this.userService.getUserRole();
-    // Si se requiere un rol específico y el usuario no lo tiene
-    if (route.data['role'] && role !== route.data['role']) {
-      this.router.navigate(['/home']);
-      return false;
-    }
-  
-    return true;
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Observable<boolean> {
+    return this.userService.getUserDetails().pipe(
+      map((user) => {
+        if (!user) {
+          this.router.navigate(['/login']);
+          return false;
+        }
+
+        // Verificar el rol del usuario
+        const requiredRole = route.data['role'];
+        if (requiredRole && user.role !== requiredRole) {
+          this.router.navigate(['/home']);
+          return false;
+        }
+
+        return true;
+      }),
+      catchError(() => {
+        this.router.navigate(['/login']);
+        return of(false);
+      })
+    );
   }
 }
