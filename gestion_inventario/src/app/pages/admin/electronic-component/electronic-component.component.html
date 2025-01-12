@@ -1,5 +1,5 @@
 <!-- Start block -->
-<div class="mx-auto max-w-screen-2xl">
+<div class="">
     <div class="bg-white dark:bg-gray-900 relative shadow-md sm:rounded-lg overflow-hidden">
         <div
             class="flex flex-col md:flex-row items-stretch md:items-center md:space-x-3 space-y-3 md:space-y-0 justify-between mx-4 py-4 border-t dark:border-gray-700">
@@ -30,6 +30,11 @@
                         Añadir Categoría
                     </button>
                 </div>
+                <button (click)="resetFilters()"
+                    class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+                    *ngIf="activeFilters.status || activeFilters.categories.length > 0 || activeFilters.searchTerm">
+                    Limpiar filtros
+                </button>
                 <button id="filterDropdownButton" data-dropdown-toggle="filterDropdown"
                     class="w-full md:w-auto flex items-center justify-center py-2 px-4 text-sm font-medium text-gray-900 focus:outline-none bg-white rounded-lg border border-gray-200 hover:bg-gray-100 hover:text-primary-700 focus:z-10 focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 dark:bg-gray-800 dark:text-white dark:border-gray-600 dark:hover:text-white dark:hover:bg-gray-700"
                     type="button">
@@ -68,7 +73,8 @@
                             <div class="py-2 font-light border-b border-gray-200 dark:border-gray-600">
                                 <ul class="space-y-2">
                                     <!-- Lista de categorías con checkboxes -->
-                                    <li *ngFor="let category of categories" class="flex items-center">
+                                    <li *ngFor="let category of categories; trackBy: trackByFn"
+                                        class="flex items-center">
                                         <input id="category-{{category.id}}" type="checkbox" [value]="category.id"
                                             (change)="onCategoryChange($event)"
                                             class="w-4 h-4 bg-gray-100 border-gray-300 rounded text-primary-600 focus:ring-primary-500 dark:focus:ring-primary-600 dark:ring-offset-gray-700 focus:ring-2 dark:bg-gray-600 dark:border-gray-500">
@@ -123,7 +129,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr *ngFor="let component of components"
+                    <tr *ngFor="let component of components; trackBy: trackByFn"
                         class="border-b dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700">
                         <th scope="row" class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             <div class="flex items-center mr-3">
@@ -244,7 +250,8 @@
                                     focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 
                                     dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
                     required>
-                    <option *ngFor="let category of categories" [value]="category.id">{{ category.name }}
+                    <option *ngFor="let category of categories; trackBy: trackByFn" [value]="category.id">{{
+                        category.name }}
                     </option>
                 </select>
                 <p *ngIf="updateForm.get('categoryId')?.invalid && updateForm.get('categoryId')?.touched"
@@ -337,7 +344,8 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr *ngFor="let category of categories" class="border-b dark:border-gray-700">
+                                <tr *ngFor="let category of categories; trackBy: trackByFn"
+                                    class="border-b dark:border-gray-700">
                                     <th scope="row"
                                         class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white"
                                         name="nombreCategoria">

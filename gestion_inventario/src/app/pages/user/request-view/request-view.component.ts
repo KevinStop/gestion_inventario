@@ -1,12 +1,151 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
+import { RequestService } from '../../../services/request.service';
+import { UserService } from '../../../services/user.service';
+import { FormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { initFlowbite } from 'flowbite';
+import { Router } from '@angular/router';
+import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 
 @Component({
   selector: 'app-request-view',
   standalone: true,
-  imports: [],
+  imports: [FormsModule, CommonModule],
   templateUrl: './request-view.component.html',
-  styleUrl: './request-view.component.css'
+  styleUrls: ['./request-view.component.css'],
 })
-export default class RequestViewComponent {
+export default class RequestViewComponent implements OnInit {
+  requests: any[] = [];
+  filteredRequests: any[] = [];
+  selectedStatus: string = 'pendiente';
+  userId: number | undefined;
+  isModalOpen: boolean = false;
+  selectedDate: string | null = null;
+  dateError: string | null = null;
+  isDateValid: boolean = false;
+  selectedRequest: any | null = null;
+  requestInProgress: boolean = false;
 
+  constructor(
+    private requestService: RequestService,
+    private userService: UserService,
+    private router: Router,
+    private sweetalertService: SweetalertService // Inyectamos el servicio de alertas
+  ) {}
+
+  ngOnInit(): void {
+    initFlowbite();
+    this.loadUserDetails(); // Cargar detalles del usuario
+  }
+
+  loadUserDetails(): void {
+    this.userService.getUserDetails().subscribe(
+      (user) => {
+        this.userId = user.userId;
+        this.loadRequests(); // Cargar solicitudes después de obtener el userId
+      },
+      (error) => {
+        console.error('Error al obtener los detalles del usuario:', error);
+        this.sweetalertService.error('Error al obtener los detalles del usuario.');
+        this.userId = undefined;
+      }
+    );
+  }
+
+  loadRequests(): void {
+    if (!this.userId) {
+      console.error('Usuario no autenticado.');
+      this.sweetalertService.error('Usuario no autenticado.');
+      return;
+    }
+
+    const filters = { status: this.selectedStatus, userId: this.userId };
+    this.requestService.getRequestsByFilter(filters).subscribe(
+      (response) => {
+        this.requests = response;
+        this.filterRequests();
+      },
+      (error) => {
+        console.error('Error al cargar las solicitudes:', error);
+        this.sweetalertService.error('Error al cargar las solicitudes.');
+      }
+    );
+  }
+
+  filterRequests(): void {
+    this.filteredRequests = this.requests
+      .filter((request) => request.status === this.selectedStatus)
+      .map((request, index) => ({
+        ...request,
+        displayId: index + 1, // Enumerar las solicitudes filtradas
+      }));
+  }
+
+  onStatusChange(event: Event): void {
+    const selectElement = event.target as HTMLSelectElement;
+    this.selectedStatus = selectElement.value;
+    this.loadRequests(); // Volver a cargar solicitudes con el nuevo filtro
+  }
+
+  openModal(request: any): void {
+    this.selectedRequest = request;
+    this.isModalOpen = true;
+  }
+
+  closeModal(): void {
+    this.isModalOpen = false;
+    this.selectedDate = null;
+    this.dateError = null;
+    this.isDateValid = false;
+    this.selectedRequest = null;
+  }
+
+  validateDate(): void {
+    if (!this.selectedDate) {
+      this.dateError = 'La fecha es requerida.';
+      this.isDateValid = false;
+      return;
+    }
+
+    const currentDate = new Date();
+    const selectedDate = new Date(this.selectedDate);
+
+    if (selectedDate < currentDate) {
+      this.dateError = 'La fecha debe ser igual o mayor a la fecha actual.';
+      this.isDateValid = false;
+    } else {
+      this.dateError = null;
+      this.isDateValid = true;
+    }
+  }
+
+  submitReturnDate(): void {
+    if (!this.selectedRequest || !this.selectedDate) {
+      this.sweetalertService.error('Debe seleccionar una solicitud y una fecha válida.');
+      return;
+    }
+
+    this.requestInProgress = true; // Inicia el indicador de progreso
+
+    this.requestService.updateReturnDate(this.selectedRequest.requestId, this.selectedDate).subscribe(
+      (response) => {
+        this.sweetalertService.success('Fecha de retorno actualizada con éxito.');
+        this.closeModal(); // Cierra el modal
+        this.loadRequests(); // Recarga las solicitudes para reflejar el cambio
+        this.requestInProgress = false; // Finaliza el indicador de progreso
+      },
+      (error) => {
+        if (error.status === 403) {
+          this.sweetalertService.error('La fecha de retorno ya fue actualizada anteriormente.');
+        } else {
+          this.sweetalertService.error('Ocurrió un error al actualizar la fecha de retorno.');
+        }
+        this.requestInProgress = false; // Finaliza el indicador de progreso
+      }
+    );
+  }
+
+  goToDetails(requestId: number): void {
+    this.router.navigate([`/home/requestDetails`, requestId]);
+  }
 }

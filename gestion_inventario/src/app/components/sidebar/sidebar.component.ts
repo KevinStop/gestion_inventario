@@ -5,11 +5,12 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Router } from '@angular/router';
+import { Image } from 'primeng/image';
 
 @Component({
   selector: 'app-sidebar',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive],
+  imports: [CommonModule, FormsModule, RouterLink, RouterLinkActive, Image],
   templateUrl: './sidebar.component.html',
   styleUrls: ['./sidebar.component.css']
 })
@@ -17,11 +18,17 @@ export class SidebarComponent implements OnInit {
 
   selectedComponentCount: number = 0;
   userRole: string | null = null; // Rol del usuario
+  user: any = {
+    name: '',
+    email: '',
+    imageUrl: '', // Cambiado para reflejar el campo del backend
+  };
 
   constructor(private userService: UserService, private router: Router, private requestService: RequestService) {}
 
   ngOnInit(): void {
     this.updateComponentCount();
+    this.loadUserDetails();
 
     // Obtener el rol del usuario al inicializar el componente
     this.userService.getUserDetails().subscribe(
@@ -57,5 +64,20 @@ export class SidebarComponent implements OnInit {
 
   isUser(): boolean {
     return this.userRole === 'user';
+  }
+
+  loadUserDetails(): void {
+    this.userService.getUserDetails().subscribe({
+      next: (data) => {
+        this.user = {
+          name: data.name || 'No disponible',
+          email: data.email || 'No disponible',
+          imageUrl: data.imageUrl || 'http://localhost:3000/assets/default-user.png', 
+        };
+      },
+      error: (err) => {
+        console.error('Error al obtener los detalles del usuario:', err);
+      },
+    });
   }
 }

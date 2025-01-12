@@ -40,7 +40,6 @@ export class HeaderComponent implements OnInit, OnDestroy {
   extendSession(): void {
     this.userService.extendSession().subscribe(
       () => {
-        console.log('Sesión extendida manualmente');
         this.sessionExpiringMessage = false; // Ocultar el mensaje
         this.resetExpirationCheck(); // Reiniciar la verificación
       },

@@ -1,13 +1,24 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const componentModel = require('./componentModel');
+const loanHistoryService  = require('./loanModel');
 
-// Crear una solicitud 
+// Crear una solicitud con verificación de disponibilidad
 const createRequest = async (data, requestDetails) => {
   if (!data.userId) {
     throw new Error('El campo userId es obligatorio para crear una solicitud.');
   }
 
   try {
+    // Verificar disponibilidad de todos los componentes solicitados
+    await Promise.all(requestDetails.map(async (detail) => {
+      await componentModel.checkComponentAvailability(
+        detail.componentId,
+        detail.quantity
+      );
+    }));
+
+    // Si todas las verificaciones pasan, crear la solicitud
     const request = await prisma.$transaction(async (prisma) => {
       return await prisma.request.create({
         data: {
@@ -24,13 +35,20 @@ const createRequest = async (data, requestDetails) => {
             })),
           },
         },
+        include: {
+          requestDetails: {
+            include: {
+              component: true
+            }
+          }
+        }
       });
     });
 
     return request;
   } catch (error) {
     console.error('Error en createRequest:', error.message);
-    throw new Error('Error al crear la solicitud: ' + error.message);
+    throw error;
   }
 };
 
@@ -68,12 +86,21 @@ const getRequestById = async (id) => {
     const request = await prisma.request.findUnique({
       where: { requestId: Number(id) },
       include: {
-        user: true, // Incluye los datos del usuario
-        requestDetails: true, // Incluye los detalles de los componentes solicitados
+        user: true,
+        requestDetails: {
+          include: {
+            component: {
+              include: {
+                category: true,
+              },
+            },
+          },
+        },
       },
     });
     return request;
   } catch (error) {
+    console.error('Error en getRequestById:', error.message);
     throw new Error('Error al obtener la solicitud');
   }
 };
@@ -81,22 +108,26 @@ const getRequestById = async (id) => {
 // Actualizar una solicitud por ID (aceptar solicitud)
 const acceptRequest = async (requestId) => {
   try {
-    return await prisma.$transaction(async (prisma) => {
-      // Verificar si la solicitud existe y está en estado pendiente
-      const existingRequest = await prisma.request.findUnique({
+    // Aumentamos el timeout de la transacción
+    return await prisma.$transaction(async (tx) => {
+      // Obtener la solicitud con sus detalles en una sola consulta
+      const request = await tx.request.findUnique({
         where: { requestId },
+        include: {
+          requestDetails: true
+        }
       });
 
-      if (!existingRequest) {
+      if (!request) {
         throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
       }
 
-      if (existingRequest.status !== 'pendiente') {
+      if (request.status !== 'pendiente') {
         throw new Error('Solo las solicitudes en estado pendiente pueden ser aceptadas.');
       }
 
       // Verificar el periodo académico activo
-      const activePeriod = await prisma.academicPeriod.findFirst({
+      const activePeriod = await tx.academicPeriod.findFirst({
         where: { isActive: true },
       });
 
@@ -104,108 +135,211 @@ const acceptRequest = async (requestId) => {
         throw new Error('No hay un periodo académico activo. No se puede aceptar la solicitud.');
       }
 
-      // Actualizar el estado de la solicitud a "prestamo"
-      const updatedRequest = await prisma.request.update({
+      // Crear todos los registros en paralelo
+      await Promise.all([
+        // Actualizar estado de la solicitud
+        tx.request.update({
+          where: { requestId },
+          data: { status: 'prestamo' }
+        }),
+
+        // Crear registros de préstamo
+        tx.loanHistory.createMany({
+          data: request.requestDetails.map(detail => ({
+            requestId,
+            userId: request.userId,
+            componentId: detail.componentId,
+            startDate: new Date(),
+            status: 'no_devuelto'
+          }))
+        }),
+
+        // Crear el registro del período
+        tx.requestPeriod.create({
+          data: {
+            requestId,
+            academicPeriodId: activePeriod.id,
+            typeDate: 'inicio',
+            requestPeriodDate: new Date()
+          }
+        })
+      ]);
+
+      // Retornar la solicitud actualizada
+      return await tx.request.findUnique({
         where: { requestId },
-        data: {
-          status: 'prestamo',
-        },
+        include: {
+          requestDetails: true,
+          relatedPeriods: true
+        }
       });
+    }, {
+      timeout: 10000 // Aumentamos el timeout a 10 segundos
+    }); // Agregamos la opción de timeout
 
-      // Crear el registro en requestPeriod
-      await prisma.requestPeriod.create({
-        data: {
-          request: { connect: { requestId } },
-          academicPeriod: { connect: { id: activePeriod.id } },
-          typeDate: 'inicio',
-          requestPeriodDate: new Date(),
-        },
-      });
-
-      return updatedRequest;
-    });
   } catch (error) {
     console.error('Error en acceptRequest:', error.message);
     throw new Error('Error al aceptar la solicitud: ' + error.message);
   }
 };
 
-// Eliminar una solicitud por ID
+// Eliminar una solicitud por ID (con transacción)
 const deleteRequest = async (requestId, userId, role) => {
   try {
-    // Verificar permisos y obtener la solicitud
-    const request = await checkRequestPermissions(requestId, userId, role);
-
-    if (role === 'user' && request.status !== 'pendiente') {
-      throw new Error('Solo puedes eliminar solicitudes en estado "pendiente".');
-    }
-
-    // Eliminar la solicitud
-    const deletedRequest = await prisma.request.delete({
+    // Verificar permisos y obtener la solicitud con todos sus detalles
+    const request = await prisma.request.findUnique({
       where: { requestId },
+      include: {
+        requestDetails: true,
+        loanHistories: true,
+        relatedPeriods: true // Cambiado de requestPeriods a relatedPeriods
+      }
     });
 
-    return deletedRequest;
+    if (!request) {
+      throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
+    }
+
+    // Verificaciones de permisos mejoradas
+    if (role === 'user') {
+      if (request.userId !== userId) {
+        throw new Error('No tienes permiso para eliminar esta solicitud.');
+      }
+      if (request.status !== 'pendiente') {
+        throw new Error('Solo puedes eliminar solicitudes en estado "pendiente".');
+      }
+    }
+
+    // Si es admin, verificar condiciones adicionales
+    if (role === 'admin') {
+      if (request.status === 'prestamo') {
+        throw new Error('No se puede eliminar una solicitud en estado de préstamo activo.');
+      }
+    }
+
+    // Manejar como transacción
+    const result = await prisma.$transaction(async (prisma) => {
+      // Registrar la eliminación en el historial si hay préstamos asociados
+      if (request.loanHistories.length > 0) {
+        await prisma.loanHistory.updateMany({
+          where: { requestId },
+          data: {
+            status: 'devuelto',
+            endDate: new Date(),
+          }
+        });
+      }
+
+      // Eliminar registros relacionados en orden específico
+      // 1. Eliminar detalles de la solicitud
+      await prisma.requestDetail.deleteMany({
+        where: { requestId }
+      });
+
+      // 2. Eliminar períodos relacionados (usando el nombre correcto)
+      await prisma.requestPeriod.deleteMany({
+        where: { requestId }
+      });
+
+      // 3. Eliminar históricos de préstamo
+      await prisma.loanHistory.deleteMany({
+        where: { requestId }
+      });
+
+      // 4. Finalmente eliminar la solicitud principal
+      const deletedRequest = await prisma.request.delete({
+        where: { requestId }
+      });
+
+      return {
+        success: true,
+        message: 'Solicitud eliminada exitosamente',
+        deletedRequest
+      };
+    });
+
+    return result;
+
   } catch (error) {
     console.error('Error en deleteRequest:', error.message);
     throw new Error('Error al eliminar la solicitud: ' + error.message);
   }
 };
 
-// Finalizar una solicitud y reponer los componentes
-const finalizeRequest = async (requestId) => {
+// Finalizar una solicitud 
+const finalizeRequest = async (requestId, adminNotes = null) => {
   try {
-    const result = await prisma.$transaction(async (prisma) => {
-      // Verificar si la solicitud existe y está activa
-      const existingRequest = await prisma.request.findUnique({
+    const result = await prisma.$transaction(async (tx) => {
+      // Verificar si la solicitud existe
+      const existingRequest = await tx.request.findUnique({
         where: { requestId },
       });
-
+ 
       if (!existingRequest) {
         throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
       }
-
+ 
       if (existingRequest.status === 'finalizado') {
         throw new Error('La solicitud ya está finalizada.');
       }
-
+ 
+      // Validar la transición de estado
+      validateStatusTransition(existingRequest.status, 'finalizado');
+ 
       // Obtener el periodo académico activo
-      const activePeriod = await prisma.academicPeriod.findFirst({
+      const activePeriod = await tx.academicPeriod.findFirst({
         where: { isActive: true },
       });
-
+ 
       if (!activePeriod) {
         throw new Error('No hay un periodo académico activo. No se puede finalizar la solicitud.');
       }
-
-      // Actualizar la solicitud a finalizado
-      const updatedRequest = await prisma.request.update({
+ 
+      const wasNotReturned = existingRequest.status === 'no_devuelto';
+      const finalStatusNote = wasNotReturned ? 
+        'Finalizado desde estado no devuelto' : 
+        'Finalizado normalmente';
+ 
+      // Actualizar la solicitud
+      const updatedRequest = await tx.request.update({
         where: { requestId },
         data: {
           status: 'finalizado',
           isActive: false,
+          adminNotes: adminNotes || finalStatusNote
         },
       });
-
-      // Crear un nuevo registro en requestPeriod con el tipo "fin"
-      const requestPeriod = await prisma.requestPeriod.create({
+ 
+      // Actualizar LoanHistory con la información de finalización
+      await loanHistoryService.updateLoanStatus(
+        requestId, 
+        'devuelto',
+        {
+          wasReturned: !wasNotReturned,
+          finalStatus: wasNotReturned ? 'finalizado_no_devuelto' : 'finalizado_normal',
+          notes: adminNotes || finalStatusNote
+        }
+      );
+ 
+      // Crear un nuevo registro en requestPeriod
+      const requestPeriod = await tx.requestPeriod.create({
         data: {
-          request: { connect: { requestId: updatedRequest.requestId } },
-          academicPeriod: { connect: { id: activePeriod.id } },
+          requestId: updatedRequest.requestId,
+          academicPeriodId: activePeriod.id,
           typeDate: 'fin',
           requestPeriodDate: new Date(),
         },
       });
-
+ 
       return { updatedRequest, requestPeriod };
     });
-
+ 
     return result;
   } catch (error) {
     console.error('Error en finalizeRequest:', error.message);
     throw new Error('Error al finalizar la solicitud: ' + error.message);
   }
-};
+ };
 
 const updateReturnDate = async (requestId, userId, role, newReturnDate) => {
   try {
@@ -214,6 +348,10 @@ const updateReturnDate = async (requestId, userId, role, newReturnDate) => {
 
     if (request.status !== 'prestamo') {
       throw new Error('Solo se puede actualizar la fecha de retorno para solicitudes en estado "prestamo".');
+    }
+
+    if (request.returnDate) {
+      throw new Error('La fecha de retorno ya ha sido modificada y no puede actualizarse nuevamente.');
     }
 
     // Actualizar la fecha de retorno
@@ -257,6 +395,87 @@ const checkRequestPermissions = async (requestId, userId, role) => {
   }
 };
 
+const validateStatusTransition = (currentStatus, newStatus) => {
+  const validTransitions = {
+    'prestamo': ['finalizado', 'no_devuelto'],
+    'no_devuelto': ['finalizado'],
+    'pendiente': ['prestamo']
+  };
+ 
+  if (!validTransitions[currentStatus]?.includes(newStatus)) {
+    throw new Error(`No se puede cambiar de estado ${currentStatus} a ${newStatus}`);
+  }
+ };
+ 
+ // Método para marcar como no devuelto
+ const markAsNotReturned = async (requestId, adminNotes = null) => {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // Verificar si la solicitud existe y está activa
+      const existingRequest = await tx.request.findUnique({
+        where: { requestId },
+        include: {
+          requestDetails: true
+        }
+      });
+ 
+      if (!existingRequest) {
+        throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
+      }
+ 
+      // Validar la transición de estado
+      validateStatusTransition(existingRequest.status, 'no_devuelto');
+ 
+      // Obtener el periodo académico activo
+      const activePeriod = await tx.academicPeriod.findFirst({
+        where: { isActive: true },
+      });
+ 
+      if (!activePeriod) {
+        throw new Error('No hay un periodo académico activo.');
+      }
+ 
+      const defaultNote = 'Componentes no devueltos';
+      
+      // Actualizar la solicitud
+      const updatedRequest = await tx.request.update({
+        where: { requestId },
+        data: {
+          status: 'no_devuelto',
+          adminNotes: adminNotes || defaultNote
+        },
+      });
+ 
+      // Actualizar LoanHistory
+      await loanHistoryService.updateLoanStatus(
+        requestId, 
+        'no_devuelto',
+        {
+          wasReturned: false,
+          notes: adminNotes || defaultNote
+        }
+      );
+ 
+      // Crear un nuevo registro en requestPeriod
+      const requestPeriod = await tx.requestPeriod.create({
+        data: {
+          requestId: updatedRequest.requestId,
+          academicPeriodId: activePeriod.id,
+          typeDate: 'no_devuelto',
+          requestPeriodDate: new Date(),
+        },
+      });
+ 
+      return { updatedRequest, requestPeriod };
+    });
+ 
+    return result;
+  } catch (error) {
+    console.error('Error en markAsNotReturned:', error.message);
+    throw new Error('Error al marcar como no devuelto: ' + error.message);
+  }
+ };
+
 module.exports = {
   createRequest,
   getFilteredRequests,
@@ -266,4 +485,6 @@ module.exports = {
   finalizeRequest,
   updateReturnDate,
   checkRequestPermissions,
+  validateStatusTransition,
+  markAsNotReturned,
 };

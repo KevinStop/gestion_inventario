@@ -29,13 +29,9 @@ export default class LoginComponent {
   onSubmit(): void {
     this.userService.login(this.credentials).subscribe(
       () => {
-        console.log('Login exitoso');
-
         // Obtener los detalles del usuario
         this.userService.getUserDetails().subscribe(
           (user) => {
-            console.log('Detalles del usuario:', user);
-
             // Redirigir según el rol del usuario
             if (user.role === 'admin') {
               this.router.navigate(['/home/electronicComponent']);

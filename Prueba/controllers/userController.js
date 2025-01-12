@@ -1,4 +1,6 @@
 const jwt = require('jsonwebtoken');
+const path = require('path');
+const upload = require('../config/uploadConfig');
 const userModel = require('../models/userModel');
 const { blacklistToken } = require('../middleware/blacklistedTokens');
 const { generateToken, setTokenCookie } = require('../Utils/tokenUtils');
@@ -10,6 +12,11 @@ const registerUser = async (req, res) => {
 
     // Validar y eliminar campos innecesarios
     delete data.confirmPassword;
+
+    // Si se sube un archivo, asignar la ruta
+    if (req.file) {
+      data.imageUrl = `/uploads/users/${req.file.filename}`;
+    }
 
     // Crear el usuario en la base de datos
     const user = await userModel.createUser(data);
@@ -55,9 +62,16 @@ const updateUser = async (req, res) => {
   }
 
   try {
+    // Si se sube una imagen, asignar la nueva ruta al campo `newImageUrl`
+    if (req.file) {
+      data.newImageUrl = `/uploads/users/${req.file.filename}`;
+    }
+
     const updatedUser = await userModel.updateUser(id, data);
-    res.status(200).json(updatedUser);
+
+    res.status(200).json({ message: 'Usuario actualizado exitosamente', user: updatedUser });
   } catch (error) {
+    console.error('Error al actualizar el usuario:', error.message);
     res.status(500).json({ error: error.message });
   }
 };

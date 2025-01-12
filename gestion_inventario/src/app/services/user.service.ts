@@ -13,7 +13,7 @@ export class UserService {
   private sessionExpiringSubject = new BehaviorSubject<boolean>(false);
   private expirationWarningTime = 5 * 60 * 1000; // 5 minutos
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(private http: HttpClient, private router: Router) { }
 
   // Registro de usuario
   register(userData: any): Observable<any> {
@@ -47,7 +47,7 @@ export class UserService {
         localStorage.removeItem('selectedComponents'); // Asegurarse de limpiar aunque haya un error
       },
     });
-  }  
+  }
 
   // Verificar autenticación
   isAuthenticated(): Observable<boolean> {
@@ -85,4 +85,10 @@ export class UserService {
   isSessionExpiring(): Observable<boolean> {
     return this.sessionExpiringSubject.asObservable();
   }
+
+  // Actualizar datos del usuario
+  updateUser(userId: number, formData: FormData): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${userId}`, formData, { withCredentials: true });
+  }
+
 }

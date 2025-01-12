@@ -1,4 +1,5 @@
 const componentModel = require('../models/componentModel');
+const loanHistoryService = require('../models/loanModel');
 const upload = require('../config/uploadConfig');
 const path = require('path');
 const fs = require('fs');
@@ -9,7 +10,7 @@ const createComponentWithMovement = async (req, res) => {
     const data = req.body;
 
     if (req.file) {
-      data.imageUrl = `/uploads/${req.file.filename}`;
+      data.imageUrl = `/uploads/componentes/${req.file.filename}`;
     }
 
     // Validar los datos requeridos
@@ -31,14 +32,31 @@ const createComponentWithMovement = async (req, res) => {
 
 // Obtener todos los componentes con filtro por estado
 const getAllComponents = async (req, res) => {
-  const { name, status } = req.query;
+  const { name, status, includeAvailable } = req.query;
+  const shouldIncludeAvailable = includeAvailable !== 'false'; // Por defecto true
 
   try {
     let components;
     if (name) {
       components = await componentModel.searchComponentsByName(name);
     } else {
-      components = await componentModel.getAllComponents(status);
+      components = await componentModel.getAllComponents(status, shouldIncludeAvailable);
+    }
+
+    // Si es un usuario normal, solo enviar componentes activos y con cantidad disponible
+    if (req.user?.role === 'user') {
+      components = components.filter(comp => comp.isActive && comp.availableQuantity > 0);
+      
+      // Simplificar la respuesta para usuarios
+      components = components.map(comp => ({
+        id: comp.id,
+        name: comp.name,
+        description: comp.description,
+        imageUrl: comp.imageUrl,
+        category: comp.category,
+        quantity: comp.availableQuantity, // Mostrar solo la cantidad disponible
+        categoryId: comp.categoryId
+      }));
     }
 
     res.status(200).json({ components });
@@ -46,7 +64,6 @@ const getAllComponents = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
 
 // Obtener un componente por ID
 const getComponentById = async (req, res) => {
@@ -73,8 +90,8 @@ const updateComponent = async (req, res) => {
       return res.status(404).json({ error: 'Componente no encontrado' });
     }
     if (req.file) {
-      const oldImagePath = path.join(__dirname, '..', 'uploads', path.basename(currentComponent.imageUrl));
-      data.imageUrl = `/uploads/${req.file.filename}`;
+      const oldImagePath = path.join(__dirname, '..', 'uploads/componentes', path.basename(currentComponent.imageUrl));
+      data.imageUrl = `/uploads/componentes/${req.file.filename}`;
       if (currentComponent.imageUrl && fs.existsSync(oldImagePath)) {
         fs.unlinkSync(oldImagePath);
       }
@@ -93,22 +110,36 @@ const updateComponent = async (req, res) => {
 const deleteComponent = async (req, res) => {
   const { id } = req.params;
   try {
+    // Obtener el componente
     const component = await componentModel.getComponentById(id);
     if (!component) {
       return res.status(404).json({ error: 'Componente no encontrado' });
     }
 
-    // Elimina el archivo de imagen si existe
+    // Verificar si hay préstamos activos
+    const activeLoans = await loanHistoryService.getCurrentLoans();
+    const hasActiveLoans = activeLoans.some(loan => loan.componentId === parseInt(id));
+
+    if (hasActiveLoans) {
+      return res.status(400).json({ 
+        error: 'No se puede eliminar el componente porque tiene préstamos activos'
+      });
+    }
+
+    // Eliminar la imagen si existe
     if (component.imageUrl) {
-      const imagePath = path.join(__dirname, '../uploads', path.basename(component.imageUrl));
+      const imagePath = path.join(__dirname, '../uploads/componentes', path.basename(component.imageUrl));
       if (fs.existsSync(imagePath)) {
         fs.unlinkSync(imagePath);
       }
     }
 
-    // Llama al método del modelo que maneja la eliminación en cascada
+    // Llamar al método del modelo que maneja la eliminación en cascada
     const deletedComponent = await componentModel.deleteComponent(id);
-    res.status(200).json(deletedComponent);
+    res.status(200).json({
+      message: 'Componente y registros relacionados eliminados exitosamente',
+      deletedComponent
+    });
   } catch (error) {
     console.error('Error al eliminar el componente:', error.message);
     res.status(500).json({ error: error.message });
@@ -119,10 +150,11 @@ const filterComponentsByCategories = async (req, res) => {
   const { categoryIds } = req.query; 
   try {
     if (!categoryIds) {
-      return res.status(400).json({ error: 'Se deben proporcionar IDs de categorÃ­as' });
+      return res.status(400).json({ error: 'Se deben proporcionar IDs de categorías' });
     }
     const components = await componentModel.filterComponentsByCategories(categoryIds);
-    res.status(200).json(components);
+    // Envolver los componentes en un objeto con la propiedad 'components'
+    res.status(200).json({ components });
   } catch (error) {
     console.error('Error al filtrar los componentes:', error);
     res.status(500).json({ error: error.message });

@@ -36,7 +36,7 @@ export class RequestService {
       .subscribe();
   }
 
-// Obtener todas las solicitudes por filtro (status, isActive, userId)
+  // Obtener todas las solicitudes por filtro (status, isActive, userId)
   getRequestsByFilter(filters: { status?: string; isActive?: boolean; userId?: number }): Observable<any> {
     const params: any = {};
     if (filters.status) params.status = filters.status;
@@ -54,24 +54,34 @@ export class RequestService {
     return this.http.get<any>(`${this.apiUrl}/${id}`, { withCredentials: true });
   }
 
-  // Crear una solicitud
-createRequest(requestData: any, requestDetails: any[], file?: File): Observable<any> {
-  if (!this.userId) {
-    console.error('Error: Usuario no autenticado');
-    throw new Error('Usuario no autenticado');
+  // Método para crear una solicitud con validación de disponibilidad
+  createRequest(requestData: any, requestDetails: any[], file?: File): Observable<any> {
+    if (!this.userId) {
+      console.error('Error: Usuario no autenticado');
+      throw new Error('Usuario no autenticado');
+    }
+
+    const formData = new FormData();
+    formData.append('userId', this.userId.toString());
+    formData.append('description', requestData.description || '');
+    formData.append('typeRequest', requestData.typeRequest || 'general');
+    formData.append('returnDate', requestData.returnDate || '');
+    formData.append('status', requestData.status || 'pendiente');
+    formData.append('requestDetails', JSON.stringify(requestDetails));
+    if (file) formData.append('file', file, file.name);
+
+    return this.http.post<any>(`${this.apiUrl}/`, formData, { 
+      withCredentials: true 
+    }).pipe(
+      catchError(error => {
+        if (error.error && error.error.error && error.error.error.includes('disponibilidad')) {
+          // Manejar error específico de disponibilidad
+          console.error('Error de disponibilidad:', error.error);
+        }
+        throw error;
+      })
+    );
   }
-
-  const formData = new FormData();
-  formData.append('userId', this.userId.toString());
-  formData.append('description', requestData.description || '');
-  formData.append('typeRequest', requestData.typeRequest || 'general'); // Nuevo campo
-  formData.append('returnDate', requestData.returnDate || ''); // Nuevo campo
-  formData.append('status', requestData.status || 'pendiente');
-  formData.append('requestDetails', JSON.stringify(requestDetails));
-  if (file) formData.append('file', file, file.name);
-
-  return this.http.post<any>(`${this.apiUrl}/`, formData, { withCredentials: true });
-}
 
   // Aceptar o actualizar una solicitud
   updateRequest(id: number): Observable<any> {
@@ -92,9 +102,42 @@ createRequest(requestData: any, requestDetails: any[], file?: File): Observable<
     );
   }
 
-  // Finalizar una solicitud
-  finalizeRequest(id: number): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}/finalize`, {}, { withCredentials: true });
+  // Método para marcar una solicitud como no devuelta
+  markAsNotReturned(id: number, adminNotes?: string): Observable<any> {
+    const body = adminNotes ? { adminNotes } : {};
+    return this.http.put<any>(
+      `${this.apiUrl}/${id}/not-returned`, 
+      body, 
+      { withCredentials: true }
+    );
+  }
+
+  // Método para obtener la lista de préstamos no devueltos
+  getNotReturnedLoans(): Observable<any> {
+    return this.http.get<any>(
+      `${this.apiUrl}/not-returned`, 
+      { withCredentials: true }
+    );
+  }
+
+  // Modificar finalizeRequest para incluir la transición desde no_devuelto
+  finalizeRequest(id: number, adminNotes?: string): Observable<any> {
+    const body = adminNotes ? { adminNotes } : {};
+    return this.http.put<any>(
+      `${this.apiUrl}/${id}/finalize`,
+      body,
+      { withCredentials: true }
+    );
+  }
+
+  // Opcional: Método helper para verificar si una solicitud puede marcarse como no devuelta
+  canMarkAsNotReturned(request: any): boolean {
+    return request.status === 'prestamo';
+  }
+
+  // Opcional: Método helper para verificar si una solicitud puede finalizarse
+  canFinalize(request: any): boolean {
+    return ['prestamo', 'no_devuelto'].includes(request.status);
   }
 
   // Obtener los componentes seleccionados desde localStorage
@@ -117,25 +160,27 @@ createRequest(requestData: any, requestDetails: any[], file?: File): Observable<
     );
   }
 
-  // Agregar un componente a la lista de seleccionados
-  addSelectedComponentToStorage(component: SelectedComponent, quantity: number): void {
+  // Método para agregar un componente validando la cantidad disponible
+  addSelectedComponentToStorage(component: any, quantity: number): void {
+    if (quantity > component.availableQuantity) {
+      throw new Error(`La cantidad solicitada (${quantity}) excede la disponibilidad (${component.availableQuantity})`);
+    }
+
     if (!this.userId) {
-      console.error('Usuario no autenticado. Obteniendo el ID del usuario...');
-      this.http
-        .get<any>(`${environment.apiUrl}/users/me`, { withCredentials: true })
+      this.http.get<any>(`${environment.apiUrl}/users/me`, { withCredentials: true })
         .pipe(
-          map((user) => {
-            this.userId = user.userId; // Actualizar el userId si no estaba disponible
-            this.addComponentToLocalStorage(component, quantity); // Reintentar el almacenamiento
+          map(user => {
+            this.userId = user.userId;
+            this.addComponentToLocalStorage(component, quantity);
           }),
-          catchError((error) => {
+          catchError(error => {
             console.error('Error al obtener el ID del usuario:', error);
             return of(null);
           })
-        )
-        .subscribe();
+        ).subscribe();
       return;
     }
+    
     this.addComponentToLocalStorage(component, quantity);
   }
 
@@ -155,5 +200,12 @@ createRequest(requestData: any, requestDetails: any[], file?: File): Observable<
     let selectedComponents = this.getSelectedComponents();
     selectedComponents = selectedComponents.filter((item: SelectedComponent) => item.id !== componentId);
     this.setSelectedComponents(selectedComponents);
+  }
+
+  // request.service.ts
+  getComprobante(url: string): Observable<Blob> {
+    return this.http.get(url, {
+      responseType: 'blob'
+    });
   }
 }

@@ -1,8 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { FormsModule, FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { Modal, initFlowbite } from 'flowbite';
-import { ComponentService } from '../../../services/component.service';
+import { initFlowbite } from 'flowbite';
+import { ComponentService, ComponentResponse  } from '../../../services/component.service';
 import { CategoryService } from '../../../services/category.service';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 
@@ -14,11 +14,18 @@ import { SweetalertService } from '../../../components/alerts/sweet-alert.servic
   styleUrls: ['./electronic-component.component.css'],
 })
 export default class ElectronicComponentComponent implements OnInit {
-  components: any[] = [];
+
+  activeFilters = {
+    status: null as string | null,
+    categories: [] as number[],
+    searchTerm: '' as string
+  };
+
+  components: ComponentResponse[] = [];
   selectedImage: File | undefined = undefined;
   imagePreviewUrl: string | undefined = undefined;
   searchTerm: string = '';
-  selectedCategories: string[] = [];
+  selectedCategories: number[] = [];
   categories: any[] = [];
   newCategory: any = { name: '' };
   selectedCategory: any = { name: '' };
@@ -54,8 +61,8 @@ export default class ElectronicComponentComponent implements OnInit {
   // Método para obtener todos los componentes
   getComponents(): void {
     this.componentService.getComponents().subscribe(
-      (data) => {
-        this.components = data.components;
+      (response) => {
+        this.components = response.components;
       },
       (error) => {
         console.error('Error al obtener los componentes:', error);
@@ -76,18 +83,8 @@ export default class ElectronicComponentComponent implements OnInit {
   }
 
   searchComponents(): void {
-    if (this.searchTerm.trim()) {
-      this.componentService.searchComponentsByName(this.searchTerm).subscribe(
-        (data) => {
-          this.components = data.components || [];
-        },
-        (error) => {
-          console.error('Error al buscar los componentes:', error);
-        }
-      );
-    } else {
-      this.getComponents();
-    }
+    this.activeFilters.searchTerm = this.searchTerm.trim();
+    this.applyFilters();
   }
 
   onImageSelected(event: Event): void {
@@ -135,6 +132,7 @@ export default class ElectronicComponentComponent implements OnInit {
         this.getComponents();
         this.isDrawerOpen = false;
         this.sweetalertService.success('Componente actualizado satisfactoriamente.');
+        this.imagePreviewUrl == '';
       },
       (error) => {
         console.error('Error al actualizar el componente:', error);
@@ -171,11 +169,21 @@ export default class ElectronicComponentComponent implements OnInit {
     );
   }
 
+  onCategoryChange(event: any): void {
+    const categoryId = parseInt(event.target.value);    
+    if (event.target.checked) {
+      this.activeFilters.categories.push(categoryId);
+    } else {
+      this.activeFilters.categories = this.activeFilters.categories.filter(id => id !== categoryId);
+    }
+    this.applyFilters();
+  }
+  
   getFilteredComponents(): void {
     if (this.selectedCategories.length > 0) {
       this.componentService.filterComponentsByCategories(this.selectedCategories).subscribe(
-        (components) => {
-          this.components = components;
+        (response) => {
+          this.components = response.components;
         },
         (error) => {
           console.error('Error al obtener los componentes filtrados', error);
@@ -184,16 +192,6 @@ export default class ElectronicComponentComponent implements OnInit {
     } else {
       this.getComponents();
     }
-  }
-
-  onCategoryChange(event: any): void {
-    const categoryId = event.target.value;
-    if (event.target.checked) {
-      this.selectedCategories.push(categoryId);
-    } else {
-      this.selectedCategories = this.selectedCategories.filter(id => id !== categoryId);
-    }
-    this.getFilteredComponents();
   }
 
   closeDrawer(): void {
@@ -227,23 +225,16 @@ export default class ElectronicComponentComponent implements OnInit {
     const select = event.target as HTMLSelectElement;
     const selectedValue = select.value;
 
-    if (selectedValue === '') {
-      // Si la opción es "Todos", obtenemos todos los componentes
-      this.selectedStatus = null;
-      this.getComponents();
-    } else {
-      // Filtrar los componentes según el estado seleccionado (activo o inactivo)
-      this.selectedStatus = selectedValue === 'activo' ? 'activo' : 'inactivo';
-      this.filterComponentsByStatus(this.selectedStatus);
-    }
+    this.activeFilters.status = selectedValue || null;
+    this.applyFilters();
   }
 
   // Método para filtrar los componentes por estado (activo o inactivo)
   filterComponentsByStatus(status: string): void {
     if (status !== null) {
       this.componentService.filterComponentsByStatus(status).subscribe(
-        (data) => {
-          this.components = data.components;
+        (response) => {
+          this.components = response.components;
         },
         (error) => {
           console.error('Error al filtrar componentes por estado:', error);
@@ -289,6 +280,68 @@ export default class ElectronicComponentComponent implements OnInit {
         alert('Hubo un error al intentar actualizar la categoría');
       }
     );
+  }
+
+  trackByFn(index: number, item: any): number {
+    return item.id; 
+  }
+
+  applyFilters(): void {
+    // Si no hay filtros activos, mostrar todos los componentes
+    if (!this.activeFilters.status && 
+        this.activeFilters.categories.length === 0 && 
+        !this.activeFilters.searchTerm) {
+      this.getComponents();
+      return;
+    }
+
+    this.componentService.getComponents().subscribe(
+      (response) => {
+        let filteredComponents = response.components;
+
+        // Aplicar filtro de estado
+        if (this.activeFilters.status) {
+          const isActive = this.activeFilters.status === 'activo';
+          filteredComponents = filteredComponents.filter(comp => comp.isActive === isActive);
+        }
+
+        // Aplicar filtro de categorías
+        if (this.activeFilters.categories.length > 0) {
+          filteredComponents = filteredComponents.filter(comp => 
+            this.activeFilters.categories.includes(comp.categoryId)
+          );
+        }
+
+        // Aplicar filtro de búsqueda
+        if (this.activeFilters.searchTerm) {
+          const searchTerm = this.activeFilters.searchTerm.toLowerCase();
+          filteredComponents = filteredComponents.filter(comp => 
+            comp.name.toLowerCase().includes(searchTerm)
+          );
+        }
+
+        this.components = filteredComponents;
+      },
+      (error) => {
+        console.error('Error al aplicar filtros:', error);
+      }
+    );
+  }
+
+  // Método para resetear filtros
+  resetFilters(): void {
+    this.activeFilters = {
+      status: null,
+      categories: [],
+      searchTerm: ''
+    };
+    this.searchTerm = '';
+    this.selectedCategories = [];
+    // Resetear el select de estado en el template
+    const statusSelect = document.getElementById('price-from') as HTMLSelectElement;
+    if (statusSelect) statusSelect.value = '';
+    
+    this.getComponents();
   }
 
 }

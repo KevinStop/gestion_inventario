@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Modal, initFlowbite } from 'flowbite';
-import { ComponentService } from '../../../services/component.service';
+import { ComponentService, ComponentResponse } from '../../../services/component.service';
 import { ComponentMovementService } from '../../../services/component-movement.service';
 import { CategoryService } from '../../../services/category.service';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
@@ -16,7 +16,7 @@ import { SweetalertService } from '../../../components/alerts/sweet-alert.servic
 })
 export default class ComponentMovementComponent implements OnInit, OnDestroy {
 
-  components: any[] = [];
+  components: ComponentResponse[] = [];
   categories: any[] = [];
   searchTerm: string = '';
   showComponentList: boolean = false;
@@ -39,7 +39,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   quantityValid2: boolean = true;
   descriptionValid: boolean = true;
 
-  constructor(private componentService: ComponentService, private componentMovementService: ComponentMovementService, 
+  constructor(private componentService: ComponentService, private componentMovementService: ComponentMovementService,
     private categoryService: CategoryService, private sweetalertService: SweetalertService) { }
 
   ngOnInit(): void {
@@ -61,8 +61,8 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
 
   getComponents(): void {
     this.componentService.getComponents().subscribe(
-      (data) => {
-        this.components = data.components;
+      (response) => {
+        this.components = response.components;
       },
       (error) => {
         console.error('Error al obtener los componentes:', error);
@@ -84,8 +84,8 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   searchComponents(): void {
     if (this.searchTerm.trim()) {
       this.componentService.searchComponentsByName(this.searchTerm).subscribe(
-        (data) => {
-          this.components = data.components || [];
+        (response) => {
+          this.components = response.components;
         },
         (error) => {
           console.error('Error al buscar los componentes:', error);
@@ -119,11 +119,11 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   // Enviar el movimiento al backend
   submitMovement(): void {
     this.showErrors = true;
-  
+
     if (!this.validateForm()) {
       return;
     }
-  
+
     const movementType = this.selectedType.toLowerCase();
     const movement = {
       componentId: this.selectedComponent?.id,
@@ -131,7 +131,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
       reason: this.reason,
       movementType: movementType
     };
-  
+
     this.componentMovementService.createComponentMovement(movement).subscribe(
       (response) => {
         this.sweetalertService.success(`Movimiento de ${movementType} realizado con éxito.`);
@@ -151,7 +151,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
         }
       }
     );
-  }  
+  }
 
   // Resetear el formulario después de enviar
   resetForm(): void {
@@ -160,7 +160,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     this.selectedComponent = null;
     this.searchTerm = '';
     this.selectedType = 'Ingreso';
-  
+
     this.newComponent = {
       name: '',
       categoryId: '',
@@ -170,35 +170,35 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     };
     this.selectedImage = undefined;
     this.imagePreviewUrl = undefined;
-  
+
     this.showErrors = false;
   }
-  
+
   createComponent(): void {
     this.showErrors = true;
-  
+
     if (!this.validateForm2()) {
       this.sweetalertService.error('Por favor complete todos los campos obligatorios correctamente.');
       return;
     }
-  
+
     // Sincronizar razón entre formularios
     if (this.reason.trim().length === 0) {
       this.sweetalertService.error('La razón del movimiento es obligatoria.');
       return;
     }
-  
+
     // Añadir la razón al nuevo componente
     const newComponentData = {
       ...this.newComponent,
-      reason: this.reason, 
+      reason: this.reason,
     };
-  
+
     this.componentService.createComponent(newComponentData, this.selectedImage).subscribe(
       (response) => {
         this.successMessage = 'Componente y movimiento de ingreso creados satisfactoriamente.';
         this.sweetalertService.success(this.successMessage);
-  
+
         this.isAddingComponent = false;
         this.getComponents();
         this.resetForm();
@@ -216,7 +216,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
         }
       }
     );
-  }  
+  }
 
   onImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -258,7 +258,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   private validateForm(): boolean {
     this.quantityValid = this.quantity !== null && this.quantity > 0;
     this.reasonValid = this.reason.trim().length > 0;
-  
+
     return this.quantityValid && this.reasonValid;
   }
 
@@ -286,7 +286,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     this.quantityValid2 = this.newComponent.quantity !== null && this.newComponent.quantity > 0;
     this.descriptionValid = this.newComponent.description.trim().length > 0;
     this.reasonValid = this.reason.trim().length > 0;
-  
+
     return this.nameValid && this.categoryValid && this.quantityValid2 && this.descriptionValid && this.reasonValid;
   }
 

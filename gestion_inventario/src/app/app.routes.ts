@@ -67,11 +67,11 @@ export const routes: Routes = [
         data: { role: 'user' },
       },
       {
-        path: 'requestDetails',
+        path: 'requestDetails/:id',
         loadComponent: () => import('./pages/user/request-details/request-details.component'),
         canActivate: [AuthGuard],
         data: { role: 'user' },
-      },
+      },      
       {
         path: 'userProfile',
         loadComponent: () => import('./pages/authentication/user-profile/user-profile.component'),

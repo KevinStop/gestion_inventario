@@ -1,7 +1,6 @@
 const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 
-// Crear un movimiento (ingreso o egreso)
 const createComponentMovement = async (data) => {
   const {
     componentId,
@@ -9,83 +8,77 @@ const createComponentMovement = async (data) => {
     reason,
     movementType,
     academicPeriodId,
-    prisma: transactionPrisma,
+    requestId,
   } = data;
 
-  const prismaClient = transactionPrisma || prisma;
-
   try {
-    // Validar la cantidad
-    const movementQuantity = parseInt(quantity);
-    if (isNaN(movementQuantity) || movementQuantity <= 0) {
-      throw new Error('La cantidad debe ser un número positivo');
-    }
-
-    // Validar la razón
-    if (!reason || reason.trim() === '') {
-      throw new Error('La razón del movimiento es obligatoria');
-    }
-
-    // Validar el componente
-    const component = await prismaClient.component.findUnique({
-      where: { id: parseInt(componentId) },
-    });
-
-    if (!component) {
-      throw new Error('El componente no existe');
-    }
-
-    // Validar egreso
-    if (movementType === 'egreso' && component.quantity < movementQuantity) {
-      throw new Error('No hay suficientes componentes disponibles para este egreso');
-    }
-
-    // Obtener el periodo académico activo
-    let activeAcademicPeriodId = academicPeriodId;
-    if (!activeAcademicPeriodId) {
-      const activePeriod = await prismaClient.academicPeriod.findFirst({
-        where: { isActive: true },
-      });
-      if (!activePeriod) {
-        throw new Error('PERIODO_ACTIVO_NO_ENCONTRADO');
+    return await prisma.$transaction(async (tx) => {
+      // Validaciones
+      const movementQuantity = parseInt(quantity);
+      if (isNaN(movementQuantity) || movementQuantity <= 0) {
+        throw new Error('La cantidad debe ser un número positivo');
       }
-      activeAcademicPeriodId = activePeriod.id;
-    }
 
-    // Calcular la nueva cantidad
-    const newQuantity =
-      movementType === 'ingreso'
+      if (!reason || reason.trim() === '') {
+        throw new Error('La razón del movimiento es obligatoria');
+      }
+
+      // Obtener el componente
+      const component = await tx.component.findUnique({
+        where: { id: parseInt(componentId) },
+      });
+
+      if (!component) {
+        throw new Error('El componente no existe');
+      }
+      
+      // Obtener el periodo académico activo
+      let activeAcademicPeriodId = academicPeriodId;
+      if (!activeAcademicPeriodId) {
+        const activePeriod = await tx.academicPeriod.findFirst({
+          where: { isActive: true },
+        });
+        if (!activePeriod) {
+          throw new Error('PERIODO_ACTIVO_NO_ENCONTRADO');
+        }
+        activeAcademicPeriodId = activePeriod.id;
+      }
+
+      // Calcular la nueva cantidad
+      const newQuantity = movementType === 'ingreso'
         ? component.quantity + movementQuantity
         : component.quantity - movementQuantity;
 
-    // Crear el movimiento
-    const componentMovement = await prismaClient.componentMovement.create({
-      data: {
-        componentId: parseInt(componentId),
-        quantity: movementType === 'ingreso' ? movementQuantity : -movementQuantity,
-        reason: reason.trim(),
-        movementType,
-        academicPeriodId: activeAcademicPeriodId,
-      },
+      // Crear el registro de movimiento
+      const componentMovement = await tx.componentMovement.create({
+        data: {
+          componentId: parseInt(componentId),
+          quantity: movementType === 'ingreso' ? movementQuantity : -movementQuantity,
+          reason: reason.trim(),
+          movementType,
+          academicPeriodId: activeAcademicPeriodId,
+        },
+      });
+
+      // Actualizar la cantidad del componente
+      await tx.component.update({
+        where: { id: parseInt(componentId) },
+        data: { quantity: newQuantity },
+      });
+
+      return componentMovement;
     });
 
-    // Actualizar la cantidad del componente
-    await prismaClient.component.update({
-      where: { id: parseInt(componentId) },
-      data: { quantity: newQuantity },
-    });
-
-    return componentMovement;
   } catch (error) {
     console.error('Error en createComponentMovement:', error.message);
     throw error;
   }
 };
 
-// Obtener movimientos de componentes con filtros opcionales
+// Método mejorado para obtener movimientos
 const getComponentMovements = async (filters) => {
   try {
-    const { componentId, movementType, startDate, endDate } = filters;
+    const { componentId, movementType, startDate, endDate, requestId } = filters;
 
     const whereCondition = {};
 
@@ -95,6 +88,10 @@ const getComponentMovements = async (filters) => {
 
     if (movementType) {
       whereCondition.movementType = movementType;
+    }
+
+    if (requestId) {
+      whereCondition.requestId = parseInt(requestId);
     }
 
     if (startDate || endDate) {
@@ -109,15 +106,18 @@ const getComponentMovements = async (filters) => {
 
     const movements = await prisma.componentMovement.findMany({
       where: whereCondition,
-      include: { component: true, academicPeriod: true },
+      include: {
+        component: true,
+        academicPeriod: true,
+      },
+      orderBy: {
+        movementDate: 'desc'
+      }
     });
 
     return movements;
   } catch (error) {
-    console.error(
-      "Error al obtener los movimientos de componentes:",
-      error.message
-    );
+    console.error("Error al obtener los movimientos de componentes:", error.message);
     throw new Error("Error al obtener los movimientos de componentes");
   }
 };

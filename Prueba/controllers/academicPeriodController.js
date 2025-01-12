@@ -1,4 +1,5 @@
 const academicPeriodModel = require('../models/academicPeriodModel');
+const loanHistoryService = require('../models/loanModel');
 
 // Crear un nuevo periodo académico
 const createAcademicPeriod = async (req, res) => {
@@ -22,7 +23,8 @@ const createAcademicPeriod = async (req, res) => {
 // Obtener todos los periodos académicos
 const getAllAcademicPeriods = async (req, res) => {
   try {
-    const academicPeriods = await academicPeriodModel.getAllAcademicPeriods();
+    const { includeStats } = req.query;
+    const academicPeriods = await academicPeriodModel.getAllAcademicPeriods(includeStats === 'true');
     res.status(200).json({ academicPeriods });
   } catch (error) {
     console.error('Error al obtener los periodos académicos:', error.message);
@@ -70,38 +72,62 @@ const updateAcademicPeriod = async (req, res) => {
 const deleteAcademicPeriod = async (req, res) => {
   try {
     const { id } = req.params;
-
+ 
     if (!id) {
       return res.status(400).json({ error: 'El ID del periodo académico es obligatorio' });
     }
-
+ 
     const deletedAcademicPeriod = await academicPeriodModel.deleteAcademicPeriod(id);
-    res.status(200).json(deletedAcademicPeriod);
+    res.status(200).json({
+      message: 'Período académico eliminado exitosamente',
+      deletedAcademicPeriod
+    });
   } catch (error) {
     console.error('Error al eliminar el periodo académico:', error.message);
     res.status(500).json({ error: error.message });
   }
-};
+ };
 
-const setActiveAcademicPeriod = async (req, res) => {
+ const setActiveAcademicPeriod = async (req, res) => {
   try {
     const { id } = req.params;
-
+ 
     if (!id) {
       return res.status(400).json({ error: 'El ID del periodo académico es obligatorio' });
     }
-
-    // Desactivar todos los períodos académicos
-    await academicPeriodModel.deactivateAllAcademicPeriods();
-
-    // Activar el período seleccionado
+ 
+    // La lógica de verificación está ahora en el servicio
     const updatedPeriod = await academicPeriodModel.setActiveAcademicPeriod(id);
-    res.status(200).json(updatedPeriod);
+    
+    res.status(200).json({
+      message: 'Período académico activado exitosamente',
+      updatedPeriod
+    });
   } catch (error) {
     console.error('Error al activar el periodo académico:', error.message);
     res.status(500).json({ error: error.message });
   }
-};
+ }; 
+
+ const getPeriodReports = async (req, res) => {
+  try {
+    const { periodId } = req.params;
+ 
+    if (!periodId) {
+      return res.status(400).json({ error: 'El ID del período es obligatorio' });
+    }
+ 
+    const reports = await academicPeriodModel.getPeriodReports(periodId);
+ 
+    res.status(200).json(reports);
+  } catch (error) {
+    console.error('Error al obtener reportes del período:', error.message);
+    res.status(500).json({ 
+      error: 'Error al obtener reportes del período',
+      details: error.message 
+    });
+  }
+ };
 
 module.exports = {
   createAcademicPeriod,
@@ -110,4 +136,5 @@ module.exports = {
   updateAcademicPeriod,
   deleteAcademicPeriod,
   setActiveAcademicPeriod,
+  getPeriodReports
 };

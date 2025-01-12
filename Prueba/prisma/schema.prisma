@@ -43,6 +43,7 @@ model Component {
   requestDetails    RequestDetail[]
   loanHistories     LoanHistory[]
   componentMovements ComponentMovement[]
+  
 }
 
 model Category {
@@ -75,6 +76,7 @@ enum RequestStatus {
   pendiente
   prestamo
   finalizado
+  no_devuelto
 }
 
 model RequestDetail {
@@ -85,28 +87,6 @@ model RequestDetail {
 
   request         Request       @relation(fields: [requestId], references: [requestId])
   component       Component     @relation(fields: [componentId], references: [id])
-}
-
-model LoanHistory {
-  loanId          Int          @id @default(autoincrement()) @map("loan_id")
-  requestId       Int          @map("request_id")
-  userId          Int          @map("user_id")
-  componentId     Int          @map("component_id")
-  startDate       DateTime     @map("start_date")
-  endDate         DateTime?
-  status          LoanStatus   @default(devuelto)
-
-  request         Request      @relation(fields: [requestId], references: [requestId])
-  user            User         @relation(fields: [userId], references: [userId])
-  component       Component    @relation(fields: [componentId], references: [id])
-
-  createdAt       DateTime     @default(now()) @map("created_at")
-  updatedAt       DateTime     @updatedAt @map("updated_at")
-}
-
-enum LoanStatus {
-  devuelto
-  no_devuelto
 }
 
 model ComponentMovement {
@@ -149,4 +129,29 @@ model RequestPeriod {
 
   request             Request             @relation(fields: [requestId], references: [requestId], name: "RequestPeriods")
   academicPeriod      AcademicPeriod      @relation(fields: [academicPeriodId], references: [id])
+}
+
+model LoanHistory {
+  loanId          Int          @id @default(autoincrement()) @map("loan_id")
+  requestId       Int          @map("request_id")
+  userId          Int          @map("user_id")
+  componentId     Int          @map("component_id")
+  startDate       DateTime     @map("start_date")
+  endDate         DateTime?
+  status          LoanStatus   @default(devuelto)
+  wasReturned Boolean @default(true)  // false indica que fue "no devuelto"
+  finalStatus String? // 'devuelto_normal', 'no_devuelto', etc.
+  statusHistory Json? // Para guardar el historial de cambios
+
+  request         Request      @relation(fields: [requestId], references: [requestId])
+  user            User         @relation(fields: [userId], references: [userId])
+  component       Component    @relation(fields: [componentId], references: [id])
+
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+}
+
+enum LoanStatus {
+  devuelto
+  no_devuelto
 }
