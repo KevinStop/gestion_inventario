@@ -1,66 +1,140 @@
-<section class="bg-gray-50 dark:bg-gray-900">
-    <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-        <a href="#" class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
-            <img class="w-8 h-8 mr-2" src="https://flowbite.s3.amazonaws.com/blocks/marketing-ui/logo.svg" alt="logo">
-            Flowbite    
-        </a>
-        <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-            <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-                <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white">
-                    Inicia sesión en tu cuenta
-                </h1>
-                <form (ngSubmit)="onSubmit()" class="space-y-4 md:space-y-6">
-                    <div>
-                        <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Tu correo electrónico</label>
-                        <input 
-                          type="email" 
-                          name="email" 
-                          id="email" 
-                          [(ngModel)]="credentials.email" 
-                          class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                          placeholder="name@company.com" 
-                          required
-                        >
-                    </div>
-                    <div>
-                        <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Contraseña</label>
-                        <input 
-                          type="password" 
-                          name="password" 
-                          id="password" 
-                          [(ngModel)]="credentials.password" 
-                          placeholder="••••••••" 
-                          class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" 
-                          required
-                        >
-                    </div>
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-start">
-                            <div class="flex items-center h-5">
-                              <input 
-                                id="remember" 
-                                aria-describedby="remember" 
-                                type="checkbox" 
-                                class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800"
-                              >
-                            </div>
-                            <div class="ml-3 text-sm">
-                              <label for="remember" class="text-gray-500 dark:text-gray-300">Recuérdame</label>
-                            </div>
-                        </div>
-                        <a href="#" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">¿Olvidaste tu contraseña?</a>
-                    </div>
-                    <button 
-                      type="submit" 
-                      class="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800"
-                    >
-                      Iniciar sesión
-                    </button>
-                    <p class="text-sm font-light text-gray-500 dark:text-gray-400">
-                        ¿No tienes una cuenta? <a routerLink="/register" class="font-medium text-primary-600 hover:underline dark:text-primary-500">Regístrate</a>
-                      </p>                    
-                </form>
+<section class="bg-gray-50 dark:bg-gray-900 min-h-screen relative">
+  <!-- Botón de tema en la esquina superior derecha -->
+  <div class="absolute top-4 right-4">
+    <button id="theme-toggle" type="button"
+      class="text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:focus:ring-gray-700 rounded-lg text-sm p-2.5">
+      <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+        xmlns="http://www.w3.org/2000/svg">
+        <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path>
+      </svg>
+      <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"
+        xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z"
+          fill-rule="evenodd" clip-rule="evenodd"></path>
+      </svg>
+    </button>
+  </div>
+  <!-- Contenedor del login centrado -->
+  <div class="flex items-center justify-center min-h-screen p-4 sm:p-6 lg:p-8">
+    <!-- Contenedor principal -->
+    <div
+      class="w-full max-w-6xl bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden flex flex-col md:flex-row">
+      <!-- Formulario (Lado izquierdo) -->
+      <div class="w-full md:w-1/2 p-8 lg:p-12">
+        <div class="space-y-8">
+          <!-- Encabezado -->
+          <div>
+            <h2 class="text-3xl font-bold text-gray-900 dark:text-white">
+              Bienvenido de vuelta
+            </h2>
+            <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+              Ingresa a tu cuenta institucional para continuar
+            </p>
+          </div>
+
+          <!-- Formulario -->
+          <form (ngSubmit)="onSubmit()" class="space-y-6">
+            <!-- Email -->
+            <div>
+              <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Correo electrónico
+              </label>
+              <input type="email" name="email" id="email" [(ngModel)]="credentials.email" class="block w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
+                                  focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                  bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white
+                                  placeholder-gray-400 transition duration-150" placeholder="nombre@espe.edu.ec"
+                required>
             </div>
+
+            <!-- Password -->
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Contraseña
+                </label>
+              </div>
+              <input type="password" name="password" id="password" [(ngModel)]="credentials.password" class="block w-full px-4 py-3 rounded-lg border border-gray-300 dark:border-gray-600
+                                  focus:ring-2 focus:ring-blue-500 focus:border-transparent
+                                  bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white
+                                  placeholder-gray-400 transition duration-150" placeholder="••••••••" required>
+              <a routerLink="/forgot-password"
+                class="text-sm font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400">
+                ¿Olvidaste tu contraseña?
+              </a>
+            </div>
+
+            <!-- Botón de Login -->
+            <button type="submit" class="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 rounded-lg
+                              hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
+                              dark:bg-blue-500 dark:hover:bg-blue-600 transition duration-150">
+              Iniciar Sesión
+            </button>
+
+            <!-- Agregar este div después del botón -->
+            <div class="text-center mt-4">
+              <p class="text-sm text-gray-600 dark:text-gray-400">
+                ¿No tienes una cuenta?
+                <a routerLink="/register"
+                  class="font-medium text-blue-600 hover:text-blue-500 dark:text-blue-400 hover:underline">
+                  Crear nueva cuenta
+                </a>
+              </p>
+            </div>
+          </form>
         </div>
+      </div>
+
+      <!-- Imagen (Lado derecho) -->
+      <div class="hidden md:block md:w-1/2 bg-cover bg-center relative overflow-hidden">
+        <!-- Overlay gradient -->
+        <div class="absolute inset-0 bg-gradient-to-br from-blue-600/80 to-purple-600/80 mix-blend-multiply"></div>
+
+        <!-- Imagen de fondo -->
+        <img src="universidad.png" alt="Campus Universitario" class="w-full h-full object-cover">
+
+        <!-- Texto superpuesto -->
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-white p-12 text-center">
+          <h3 class="text-2xl font-bold mb-4">Sistema de Gestión de Inventarios y reserva de laboratorios</h3>
+        </div>
+      </div>
     </div>
+  </div>
+
+  <!-- Modal-->
+  <div id="moduleModal" tabindex="-1" aria-hidden="true"
+    class="fixed top-0 left-0 right-0 z-50 hidden w-full p-4 overflow-x-hidden overflow-y-auto md:inset-0 h-[calc(100%-1rem)] max-h-full">
+    <div class="relative w-full max-w-md max-h-full">
+      <div class="relative bg-white rounded-lg shadow dark:bg-gray-700">
+        <!-- Modal header -->
+        <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+          <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+            Selecciona el módulo
+          </h3>
+          <button type="button" (click)="closeModal()"
+            class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+            <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+              <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+            </svg>
+            <span class="sr-only">Cerrar modal</span>
+          </button>
+        </div>
+
+        <!-- Modal body -->
+        <div class="p-6 space-y-6">
+          <div class="grid grid-cols-1 gap-4">
+            <button (click)="selectModule('inventario')"
+              class="w-full px-4 py-3 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-500 dark:hover:bg-blue-600 transition duration-150">
+              Gestión de Inventario
+            </button>
+            <a href="http://localhost:4300" target="_blank" (click)="closeModal()"
+              class="w-full px-4 py-3 text-sm font-semibold text-blue-600 bg-white border-2 border-blue-600 rounded-lg hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:text-blue-400 dark:border-blue-400 dark:hover:bg-gray-600 transition duration-150 text-center">
+              Reserva de Laboratorios
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </section>

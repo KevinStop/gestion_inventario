@@ -38,6 +38,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
   categoryValid: boolean = true;
   quantityValid2: boolean = true;
   descriptionValid: boolean = true;
+  imageValid: boolean = true;
 
   constructor(private componentService: ComponentService, private componentMovementService: ComponentMovementService,
     private categoryService: CategoryService, private sweetalertService: SweetalertService) { }
@@ -170,6 +171,7 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     };
     this.selectedImage = undefined;
     this.imagePreviewUrl = undefined;
+    this.imageValid = true;
 
     this.showErrors = false;
   }
@@ -220,17 +222,39 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
 
   onImageSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
-    if (input.files && input.files.length > 0) {
-      this.selectedImage = input.files[0];
-      const reader = new FileReader();
-      reader.onload = () => {
-        this.imagePreviewUrl = reader.result as string;
-      };
-      reader.readAsDataURL(this.selectedImage);
-    } else {
+
+    // Validar que se haya seleccionado un archivo
+    if (!input.files || input.files.length === 0) {
       this.selectedImage = undefined;
       this.imagePreviewUrl = undefined;
+      this.imageValid = false;
+      this.sweetalertService.error('Debe seleccionar una imagen.');
+      return;
     }
+
+    const file = input.files[0];
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+
+    // Validar el tipo de archivo
+    if (!allowedTypes.includes(file.type)) {
+      this.selectedImage = undefined;
+      this.imagePreviewUrl = undefined;
+      this.imageValid = false;
+      this.sweetalertService.error('Solo se permiten archivos JPEG, JPG y PNG.');
+      input.value = ''; // Limpiar el input
+      return;
+    }
+
+    // Si pasa las validaciones
+    this.selectedImage = file;
+    this.imageValid = true;
+
+    // Generar preview de la imagen
+    const reader = new FileReader();
+    reader.onload = () => {
+      this.imagePreviewUrl = reader.result as string;
+    };
+    reader.readAsDataURL(this.selectedImage);
   }
 
   removeImage(): void {
@@ -247,7 +271,29 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
 
   // Validar individualmente los campos en cada cambio
   onQuantityChange(): void {
+    if (!Number.isInteger(this.quantity)) {
+      this.sweetalertService.error('La cantidad debe ser un número entero.');
+      // Forzamos la actualización al valor anterior o a null
+      setTimeout(() => {
+        this.quantity = null;
+      });
+      this.quantityValid = false;
+      return;
+    }
     this.quantityValid = this.quantity !== null && this.quantity > 0;
+  }
+  
+  onQuantityChange2(): void {
+    if (!Number.isInteger(this.newComponent.quantity)) {
+      this.sweetalertService.error('La cantidad debe ser un número entero.');
+      // Forzamos la actualización al valor anterior o a null
+      setTimeout(() => {
+        this.newComponent.quantity = null;
+      });
+      this.quantityValid2 = false;
+      return;
+    }
+    this.quantityValid2 = this.newComponent.quantity !== null && this.newComponent.quantity > 0;
   }
 
   onReasonChange(): void {
@@ -275,10 +321,6 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     this.descriptionValid = this.newComponent.description.trim().length > 0;
   }
 
-  onQuantityChange2(): void {
-    this.quantityValid2 = this.newComponent.quantity !== null && this.newComponent.quantity > 0;
-  }
-
   // Validación general del formulario
   private validateForm2(): boolean {
     this.nameValid = this.newComponent.name.trim().length > 0;
@@ -286,8 +328,19 @@ export default class ComponentMovementComponent implements OnInit, OnDestroy {
     this.quantityValid2 = this.newComponent.quantity !== null && this.newComponent.quantity > 0;
     this.descriptionValid = this.newComponent.description.trim().length > 0;
     this.reasonValid = this.reason.trim().length > 0;
+    this.imageValid = !!this.selectedImage; // Validar que haya una imagen seleccionada
 
-    return this.nameValid && this.categoryValid && this.quantityValid2 && this.descriptionValid && this.reasonValid;
+    // Si no hay imagen seleccionada y showErrors está activo, mostrar mensaje
+    if (!this.imageValid && this.showErrors) {
+      this.sweetalertService.error('Debe seleccionar una imagen.');
+    }
+
+    return this.nameValid &&
+      this.categoryValid &&
+      this.quantityValid2 &&
+      this.descriptionValid &&
+      this.reasonValid &&
+      this.imageValid;
   }
 
 }

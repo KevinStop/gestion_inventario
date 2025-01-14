@@ -5,6 +5,7 @@ import { initFlowbite } from 'flowbite';
 import { RequestService } from '../../../services/request.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { UserService } from '../../../services/user.service';
 
 @Component({
   selector: 'app-request',
@@ -27,16 +28,22 @@ export default class RequestComponent implements OnInit {
   isAdminNotesModalOpen: boolean = false;
   currentRequestId: number | null = null;
   notReturnedLoans: any[] = [];
+  isRejectionAction: boolean = false;
+  userRole: string = '';
 
   constructor(
     private requestService: RequestService,
     private sanitizer: DomSanitizer,
-    private sweetalertService: SweetalertService
+    private sweetalertService: SweetalertService,
+    private userService: UserService,
   ) {}
 
   ngOnInit(): void {
     initFlowbite();
     this.fetchActiveRequests();
+    this.userService.getUserDetails().subscribe(
+      userDetails => this.userRole = userDetails
+    );
   }
 
   fetchActiveRequests(): void {
@@ -160,6 +167,25 @@ export default class RequestComponent implements OnInit {
     });
   }  
 
+  rejectRequest(requestId: number): void {
+    if (!requestId) {
+      this.sweetalertService.error('ID de solicitud no válido');
+      console.error('ID de solicitud no válido');
+      return;
+    }
+  
+    // Primera alerta: Solicitar las notas de rechazo
+    this.sweetalertService.confirm('Por favor, agregue el motivo del rechazo').then((result) => {
+      if (result.isConfirmed) {
+        // Abrir modal para capturar la razón del rechazo
+        this.currentRequestId = requestId;
+        this.isAdminNotesModalOpen = true;
+        // Agregar una bandera para identificar que es un rechazo
+        this.isRejectionAction = true;
+      }
+    });
+  }
+
   finalizeRequest(requestId: number): void {
     if (!requestId) {
       this.sweetalertService.error('ID de solicitud no válido');
@@ -203,18 +229,25 @@ export default class RequestComponent implements OnInit {
     this.isAdminNotesModalOpen = false;
     this.adminNotes = '';
     this.currentRequestId = null;
+    this.isRejectionAction = false;
   }
 
   // Guardar observación y continuar con la segunda alerta
   saveAdminNotes(): void {
     if (this.currentRequestId) {
       this.isAdminNotesModalOpen = false;
-      // Verificar el estado actual de la solicitud para determinar la acción
-      const request = this.requests.find(r => r.requestId === this.currentRequestId);
-      if (request?.status === 'prestamo') {
-        this.confirmMarkAsNotReturned(this.currentRequestId);
+      
+      if (this.isRejectionAction) {
+        // Si es un rechazo, llamar al nuevo método
+        this.confirmRejectRequest(this.currentRequestId);
       } else {
-        this.confirmFinalizeRequest(this.currentRequestId);
+        // Lógica existente para finalizar o marcar como no devuelto
+        const request = this.requests.find(r => r.requestId === this.currentRequestId);
+        if (request?.status === 'prestamo') {
+          this.confirmMarkAsNotReturned(this.currentRequestId);
+        } else {
+          this.confirmFinalizeRequest(this.currentRequestId);
+        }
       }
     }
   }
@@ -272,6 +305,26 @@ export default class RequestComponent implements OnInit {
           },
         });
       }
+    });
+  }
+
+  private confirmRejectRequest(requestId: number): void {
+    this.sweetalertService.confirm('¿Estás seguro de que deseas rechazar esta solicitud?').then((result) => {
+      if (result.isConfirmed) {
+        this.requestService.rejectRequest(requestId, this.adminNotes).subscribe({
+          next: (response) => {
+            this.sweetalertService.success('Solicitud rechazada con éxito');
+            this.fetchActiveRequests();
+          },
+          error: (err) => {
+            this.sweetalertService.error('Error al rechazar la solicitud');
+            console.error('Error al rechazar la solicitud:', err);
+          },
+        });
+      }
+      // Limpiar la bandera de rechazo
+      this.isRejectionAction = false;
+      this.adminNotes = '';
     });
   }
 

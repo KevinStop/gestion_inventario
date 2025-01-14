@@ -93,6 +93,15 @@ export class RequestService {
     return this.http.delete<any>(`${this.apiUrl}/${id}`, { withCredentials: true });
   }
 
+  // Método para rechazo por admin
+  rejectRequest(id: number, rejectionNotes: string): Observable<any> {
+    return this.http.post<any>(
+      `${this.apiUrl}/${id}/reject`, 
+      { rejectionNotes }, 
+      { withCredentials: true }
+    );
+  }
+
   // Actualizar la fecha de retorno (solicitar aplazo)
   updateReturnDate(id: number, newReturnDate: string): Observable<any> {
     return this.http.put<any>(

@@ -476,6 +476,56 @@ const validateStatusTransition = (currentStatus, newStatus) => {
   }
  };
 
+ const rejectRequest = async (requestId, adminId, rejectionNotes) => {
+  try {
+    const request = await prisma.request.findUnique({
+      where: { requestId },
+      include: {
+        requestDetails: true,
+        loanHistories: true,
+        relatedPeriods: true
+      }
+    });
+
+    if (!request) {
+      throw new Error(`No se encontró la solicitud con el ID ${requestId}.`);
+    }
+
+    if (request.status !== 'pendiente') {
+      throw new Error('Solo se pueden rechazar solicitudes en estado "pendiente".');
+    }
+
+    // Manejar como transacción
+    const result = await prisma.$transaction(async (prisma) => {
+      // Actualizar la solicitud a rechazada en lugar de eliminarla
+      const rejectedRequest = await prisma.request.update({
+        where: { requestId },
+        data: {
+          status: 'finalizado',
+          adminNotes: rejectionNotes,
+          isActive: false,
+          updatedAt: new Date()
+        },
+        include: {
+          user: true // Incluir información del usuario para el correo
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Solicitud rechazada exitosamente',
+        rejectedRequest
+      };
+    });
+
+    return result;
+
+  } catch (error) {
+    console.error('Error en rejectRequest:', error.message);
+    throw new Error('Error al rechazar la solicitud: ' + error.message);
+  }
+};
+
 module.exports = {
   createRequest,
   getFilteredRequests,
@@ -487,4 +537,5 @@ module.exports = {
   checkRequestPermissions,
   validateStatusTransition,
   markAsNotReturned,
+  rejectRequest,
 };

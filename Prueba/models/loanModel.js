@@ -85,20 +85,39 @@ const getLoansByUser = async (userId) => {
   }
 };
 
-const getCurrentLoans = async (includeNotReturned = true) => {
+const getCurrentLoans = async (filters = {}) => {
   try {
+    const { userId, componentId, startDate, endDate } = filters;
+
+    // Construir la condición base
     const whereCondition = {
       OR: [
         { status: "no_devuelto" },
-        ...(includeNotReturned
-          ? [
-              {
-                AND: [{ status: "devuelto" }, { wasReturned: false }],
-              },
-            ]
-          : []),
+        {
+          AND: [{ status: "devuelto" }, { wasReturned: false }],
+        },
       ],
     };
+
+    // Agregar filtros adicionales
+    if (userId) {
+      whereCondition.userId = parseInt(userId);
+    }
+
+    if (componentId) {
+      whereCondition.componentId = parseInt(componentId);
+    }
+
+    // Agregar filtros de fecha
+    if (startDate || endDate) {
+      whereCondition.startDate = {};
+      if (startDate) {
+        whereCondition.startDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereCondition.startDate.lte = new Date(endDate);
+      }
+    }
 
     return await prisma.loanHistory.findMany({
       where: whereCondition,
@@ -112,6 +131,7 @@ const getCurrentLoans = async (includeNotReturned = true) => {
       },
     });
   } catch (error) {
+    console.error("Error en getCurrentLoans:", error);
     throw new Error(`Error getting current loans: ${error.message}`);
   }
 };
@@ -173,41 +193,112 @@ const getAverageLoanDuration = async () => {
   }
 };
 
-const getMostRequestedComponents = async () => {
+const getMostRequestedComponents = async (filters = {}) => {
   try {
-    return await prisma.loanHistory.groupBy({
+    const { startDate, endDate, category } = filters;
+
+    // Construir condición base para el where
+    let whereCondition = {};
+
+    // Agregar filtros de fecha si están presentes
+    if (startDate || endDate) {
+      whereCondition.startDate = {};
+      if (startDate) {
+        whereCondition.startDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereCondition.startDate.lte = new Date(endDate);
+      }
+    }
+
+    // Primero obtenemos el conteo agrupado con filtros
+    const groupedResults = await prisma.loanHistory.groupBy({
       by: ["componentId"],
       _count: {
         componentId: true,
       },
+      where: whereCondition,
       orderBy: {
         _count: {
           componentId: "desc",
         },
       },
-      include: {
-        component: true,
-      },
     });
+
+    // Luego obtenemos los detalles de los componentes
+    const componentsWithDetails = await Promise.all(
+      groupedResults.map(async (result) => {
+        const component = await prisma.component.findUnique({
+          where: {
+            id: result.componentId,
+            ...(category && {
+              category: {
+                name: category,
+              },
+            }),
+          },
+          include: {
+            category: true,
+          },
+        });
+
+        // Solo incluir si el componente existe y cumple con el filtro de categoría
+        if (component) {
+          return {
+            componentId: result.componentId,
+            _count: {
+              componentId: result._count.componentId,
+            },
+            component: component,
+          };
+        }
+        return null;
+      })
+    );
+
+    // Filtrar componentes nulos (que no cumplieron con el filtro de categoría)
+    return componentsWithDetails.filter((item) => item !== null);
   } catch (error) {
+    console.error("Error en getMostRequestedComponents:", error);
     throw new Error(
       `Error getting most requested components: ${error.message}`
     );
   }
 };
 
-const getLoansByPeriod = async (academicPeriodId) => {
+const getLoansByPeriod = async (academicPeriodId, filters = {}) => {
   try {
-    return await prisma.loanHistory.findMany({
-      where: {
-        request: {
-          relatedPeriods: {
-            some: {
-              academicPeriodId,
-            },
+    const { startDate, endDate, status } = filters;
+
+    // Construir la consulta base
+    const whereCondition = {
+      request: {
+        relatedPeriods: {
+          some: {
+            academicPeriodId,
           },
         },
       },
+    };
+
+    // Agregar filtro de fechas si están presentes
+    if (startDate || endDate) {
+      whereCondition.startDate = {};
+      if (startDate) {
+        whereCondition.startDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereCondition.startDate.lte = new Date(endDate);
+      }
+    }
+
+    // Agregar filtro de estado si está presente y no es 'null'
+    if (status && status !== "null") {
+      whereCondition.status = status;
+    }
+
+    return await prisma.loanHistory.findMany({
+      where: whereCondition,
       include: {
         component: true,
         user: true,
@@ -223,6 +314,7 @@ const getLoansByPeriod = async (academicPeriodId) => {
       },
     });
   } catch (error) {
+    console.error("Error en getLoansByPeriod:", error);
     throw new Error(`Error getting loans by period: ${error.message}`);
   }
 };
@@ -250,15 +342,35 @@ const getReturnTimeComparison = async () => {
   }
 };
 
-const getNotReturnedLoans = async () => {
+const getNotReturnedLoans = async (filters = {}) => {
   try {
-    return await prisma.loanHistory.findMany({
-      where: {
+    const { userId, startDate, endDate } = filters;
+
+    const whereCondition = {
+      status: "no_devuelto",
+      request: {
         status: "no_devuelto",
-        request: {
-          status: "no_devuelto",
-        },
       },
+    };
+
+    // Agregar filtro de usuario si está presente
+    if (userId) {
+      whereCondition.userId = parseInt(userId);
+    }
+
+    // Agregar filtros de fecha
+    if (startDate || endDate) {
+      whereCondition.startDate = {};
+      if (startDate) {
+        whereCondition.startDate.gte = new Date(startDate);
+      }
+      if (endDate) {
+        whereCondition.startDate.lte = new Date(endDate);
+      }
+    }
+
+    return await prisma.loanHistory.findMany({
+      where: whereCondition,
       include: {
         component: true,
         user: true,
@@ -269,6 +381,7 @@ const getNotReturnedLoans = async () => {
       },
     });
   } catch (error) {
+    console.error("Error en getNotReturnedLoans:", error);
     throw new Error(`Error getting not returned loans: ${error.message}`);
   }
 };

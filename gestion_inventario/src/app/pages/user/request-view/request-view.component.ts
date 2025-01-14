@@ -13,6 +13,7 @@ import { SweetalertService } from '../../../components/alerts/sweet-alert.servic
   imports: [FormsModule, CommonModule],
   templateUrl: './request-view.component.html',
   styleUrls: ['./request-view.component.css'],
+  
 })
 export default class RequestViewComponent implements OnInit {
   requests: any[] = [];
@@ -30,12 +31,13 @@ export default class RequestViewComponent implements OnInit {
     private requestService: RequestService,
     private userService: UserService,
     private router: Router,
-    private sweetalertService: SweetalertService // Inyectamos el servicio de alertas
+    private sweetalertService: SweetalertService,
+
   ) {}
 
   ngOnInit(): void {
     initFlowbite();
-    this.loadUserDetails(); // Cargar detalles del usuario
+    this.loadUserDetails(); 
   }
 
   loadUserDetails(): void {
@@ -125,14 +127,14 @@ export default class RequestViewComponent implements OnInit {
       return;
     }
 
-    this.requestInProgress = true; // Inicia el indicador de progreso
+    this.requestInProgress = true; 
 
     this.requestService.updateReturnDate(this.selectedRequest.requestId, this.selectedDate).subscribe(
       (response) => {
         this.sweetalertService.success('Fecha de retorno actualizada con éxito.');
-        this.closeModal(); // Cierra el modal
-        this.loadRequests(); // Recarga las solicitudes para reflejar el cambio
-        this.requestInProgress = false; // Finaliza el indicador de progreso
+        this.closeModal(); 
+        this.loadRequests(); 
+        this.requestInProgress = false;
       },
       (error) => {
         if (error.status === 403) {
@@ -140,7 +142,7 @@ export default class RequestViewComponent implements OnInit {
         } else {
           this.sweetalertService.error('Ocurrió un error al actualizar la fecha de retorno.');
         }
-        this.requestInProgress = false; // Finaliza el indicador de progreso
+        this.requestInProgress = false;
       }
     );
   }

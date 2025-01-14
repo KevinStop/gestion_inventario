@@ -109,12 +109,13 @@
                   class="rounded-lg bg-green-600 px-3 py-2 text-sm font-medium text-white hover:bg-green-700">
                   Aceptar
                 </button>
-                <button type="button" (click)="cancelRequest(request.requestId)"
+                <button type="button"
+                  (click)="rejectRequest(request.requestId)"
                   class="rounded-lg bg-red-600 px-3 py-2 text-sm font-medium text-white hover:bg-red-700">
                   Rechazar
                 </button>
               </ng-container>
-            
+
               <!-- Botones para estado préstamo -->
               <ng-container *ngIf="request.status === 'prestamo'">
                 <button (click)="markAsNotReturned(request.requestId)"
@@ -126,7 +127,7 @@
                   Finalizar
                 </button>
               </ng-container>
-            
+
               <!-- Botón finalizar para estado no devuelto -->
               <ng-container *ngIf="request.status === 'no_devuelto'">
                 <button (click)="finalizeRequest(request.requestId)"
@@ -210,18 +211,22 @@
 <!-- Modal para agregar observaciones -->
 <div *ngIf="isAdminNotesModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
   <div class="w-full max-w-lg rounded-lg bg-white p-6 shadow dark:bg-gray-800">
-    <h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">Agregar Observación</h3>
+    <h3 class="mb-4 text-xl font-medium text-gray-900 dark:text-white">
+      {{ isRejectionAction ? 'Motivo del rechazo' : 'Agregar Observación' }}
+    </h3>
     <textarea [(ngModel)]="adminNotes" rows="4"
       class="w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-      placeholder="Escriba su observación aquí..."></textarea>
+      [placeholder]="isRejectionAction ? 'Escriba el motivo del rechazo aquí...' : 'Escriba su observación aquí...'"
+      required>
+    </textarea>
     <div class="mt-4 flex justify-end gap-2">
       <button (click)="closeAdminNotesModal()"
         class="rounded-lg bg-gray-600 px-3 py-2 text-sm font-medium text-white hover:bg-gray-700">
         Cancelar
       </button>
-      <button (click)="saveAdminNotes()"
-        class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700">
-        Guardar y Continuar
+      <button (click)="saveAdminNotes()" [disabled]="!adminNotes.trim()"
+        class="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed">
+        {{ isRejectionAction ? 'Rechazar solicitud' : 'Guardar y Continuar' }}
       </button>
     </div>
   </div>

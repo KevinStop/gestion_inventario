@@ -7,13 +7,16 @@ import { initFlowbite } from 'flowbite';
 import { ImageModule } from 'primeng/image';
 import { RouterLink } from '@angular/router';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-loans-summary',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ImageModule, RouterLink],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ImageModule, RouterLink, ToastModule],
   templateUrl: './loans-summary.component.html',
   styleUrls: ['./loans-summary.component.css'],
+  providers: [MessageService, ConfirmationService],
 })
 export default class LoansSummaryComponent implements OnInit {
   formGroup: FormGroup;
@@ -23,9 +26,9 @@ export default class LoansSummaryComponent implements OnInit {
 
   constructor(
     private requestService: RequestService,
-    private userService: UserService,
+    private messageService: MessageService,
     private fb: FormBuilder,
-    private sweetalertService: SweetalertService // Inyectamos el servicio de alertas
+    private sweetalertService: SweetalertService
   ) {
     this.formGroup = this.fb.group({
       typeRequest: ['', Validators.required],
@@ -59,14 +62,27 @@ export default class LoansSummaryComponent implements OnInit {
   }
 
   updateQuantity(componentId: number, quantity: number): void {
-    if (quantity < 1) {
-      this.sweetalertService.error('La cantidad no puede ser menor a 1.');
+    const component = this.selectedComponents.find((comp) => comp.id === componentId);
+    if (!component) return;
+
+    if (!Number.isInteger(quantity)) {
+      this.sweetalertService.error('Solo se permiten números enteros.');
+      this.loadSelectedComponents();
       return;
     }
 
-    const component = this.selectedComponents.find((comp) => comp.id === componentId);
-    if (component) {
-      component.quantity = quantity;
+    if (quantity <= 0) {
+      this.sweetalertService.error('La cantidad no puede ser menor o igual a 0.');
+      this.loadSelectedComponents();
+      return;
+    }
+
+    if (quantity > component.availableQuantity) {
+      this.sweetalertService.error(
+        `La cantidad no puede exceder el máximo disponible (${component.availableQuantity}).`
+      );
+      this.loadSelectedComponents();
+      return;
     }
 
     this.requestService.setSelectedComponents(this.selectedComponents);
@@ -83,7 +99,13 @@ export default class LoansSummaryComponent implements OnInit {
           );
           this.requestService.setSelectedComponents(this.selectedComponents);
           this.calculateTotal();
-          this.sweetalertService.success('Componente eliminado exitosamente.');
+          this.messageService.add({
+            severity: 'info',
+            summary: 'Componente eliminado',
+            detail: 'Se ha eliminado el componente de la solicitud',
+            life: 2000,
+          });
+          return;
         }
       });
   }

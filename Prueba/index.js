@@ -59,6 +59,7 @@ const loanRoutes = require('./routes/loanRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const componentMovementRoutes = require('./routes/componentMovementRoutes');
 const academicPeriodRoutes = require('./routes/academicPeriodRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 // Rutas de la API
 app.use('/components', componentRoutes);
@@ -69,6 +70,7 @@ app.use('/loans', loanRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/component-movements', componentMovementRoutes);
 app.use('/academic-periods', academicPeriodRoutes);
+app.use('/reports', reportRoutes);
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);

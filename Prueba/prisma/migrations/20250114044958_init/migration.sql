@@ -3,6 +3,7 @@ CREATE TABLE `User` (
     `user_id` INTEGER NOT NULL AUTO_INCREMENT,
     `google_id` VARCHAR(255) NULL,
     `name` VARCHAR(255) NOT NULL,
+    `lastName` VARCHAR(255) NOT NULL,
     `email` VARCHAR(255) NOT NULL,
     `password` VARCHAR(255) NULL,
     `role` ENUM('admin', 'user') NOT NULL DEFAULT 'user',
@@ -114,6 +115,9 @@ CREATE TABLE `LoanHistory` (
     `start_date` DATETIME(3) NOT NULL,
     `endDate` DATETIME(3) NULL,
     `status` ENUM('devuelto', 'no_devuelto') NOT NULL DEFAULT 'devuelto',
+    `wasReturned` BOOLEAN NOT NULL DEFAULT true,
+    `finalStatus` VARCHAR(191) NULL,
+    `statusHistory` JSON NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updated_at` DATETIME(3) NOT NULL,
 

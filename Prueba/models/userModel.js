@@ -18,15 +18,22 @@ const createUser = async (data) => {
 
     // Asignar una imagen predeterminada si no se proporciona una
     if (!data.imageUrl) {
-      data.imageUrl = "/assets/user.png"; // Ruta relativa a la carpeta pública del backend
+      data.imageUrl = "/assets/user.png";
     }
 
     // Eliminar campos no necesarios
     delete data.confirmPassword;
 
-    // Crear el usuario en la base de datos
+    // Crear el usuario en la base de datos con los campos correctos
     const user = await prisma.user.create({
-      data: data,
+      data: {
+        email: data.email,
+        password: data.password,
+        name: data.name,
+        lastName: data.lastName, // Asegúrate de que este campo se incluya
+        imageUrl: data.imageUrl,
+        role: "user" // Valor por defecto si no se especifica
+      },
     });
 
     return user;
@@ -85,7 +92,6 @@ const updateUser = async (id, data) => {
 
         // Eliminar la imagen anterior si existe
         if (fs.existsSync(currentImagePath)) {
-          console.log('Eliminando la imagen anterior:', currentImagePath);
           fs.unlinkSync(currentImagePath);
         }
       }

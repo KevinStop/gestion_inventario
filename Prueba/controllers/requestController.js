@@ -1,8 +1,7 @@
 const requestModel = require('../models/requestModel');
 const componentModel = require('../models/componentModel');
 const loanHistoryService = require('../models/loanModel');
-const fs = require('fs');
-const path = require('path');
+const EmailService = require('../src/mailer/emailService');
 
 // Crear una solicitud con verificación de disponibilidad
 const createRequest = async (req, res) => {
@@ -39,6 +38,7 @@ const createRequest = async (req, res) => {
     };
 
     const newRequest = await requestModel.createRequest(data, requestDetails);
+    await EmailService.sendNewRequestNotification(newRequest.requestId);
     return res.status(201).json(newRequest);
   } catch (error) {
     console.error('Error al crear la solicitud:', error.message);
@@ -119,6 +119,7 @@ const acceptRequest = async (req, res) => {
 
     // Aceptar la solicitud (la creación de LoanHistory ya está incluida en acceptRequest)
     const updatedRequest = await requestModel.acceptRequest(requestId);
+    await EmailService.sendRequestApprovalNotification(updatedRequest.requestId);
 
     return res.status(200).json({
       message: 'Solicitud aceptada con éxito.',
@@ -162,6 +163,36 @@ const deleteRequest = async (req, res) => {
     console.error('Error en deleteRequest:', error.message);
     const statusCode = error.message.includes('permisos') ? 403 : 500;
     return res.status(statusCode).json({ error: error.message });
+  }
+};
+
+const rejectRequest = async (req, res) => {
+  const { id } = req.params;
+  const { rejectionNotes } = req.body;
+  const requestId = parseInt(id);
+  const adminId = req.user?.userId;
+
+  if (isNaN(requestId)) {
+    return res.status(400).json({ error: 'El ID de la solicitud debe ser un número válido.' });
+  }
+
+  if (!rejectionNotes) {
+    return res.status(400).json({ error: 'Debe proporcionar un motivo para el rechazo.' });
+  }
+
+  try {
+    const result = await requestModel.rejectRequest(requestId, adminId, rejectionNotes);
+    
+    // Enviar correo de notificación
+    await EmailService.sendRequestRejectionNotification(requestId);
+
+    return res.status(200).json({
+      message: 'Solicitud rechazada exitosamente.',
+      result,
+    });
+  } catch (error) {
+    console.error('Error en rejectRequest:', error.message);
+    return res.status(500).json({ error: error.message });
   }
 };
 
@@ -258,5 +289,6 @@ module.exports = {
   finalizeRequest,
   updateReturnDate,
   markAsNotReturned,
-  getNotReturnedLoans
+  getNotReturnedLoans,
+  rejectRequest
 };

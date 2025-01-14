@@ -11,6 +11,7 @@ model User {
   userId         Int             @id @default(autoincrement()) @map("user_id")
   googleId       String?         @unique @db.VarChar(255) @map("google_id")
   name           String          @db.VarChar(255)
+  lastName       String          @db.VarChar(255) @map("last_name")
   email          String          @unique @db.VarChar(255)
   password       String?         @db.VarChar(255)
   role           Role            @default(user)

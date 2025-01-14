@@ -58,6 +58,7 @@ router.put('/:id', authenticateToken,authorizeRoles(['admin']),requestController
 router.put('/:id/finalize', authenticateToken,authorizeRoles(['admin']),requestController.finalizeRequest);
 router.put('/:id/not-returned', authenticateToken,authorizeRoles(['admin']), requestController.markAsNotReturned);
 router.get('/not-returned', authenticateToken,authorizeRoles(['admin']), requestController.getNotReturnedLoans);
+router.post('/:id/reject', authenticateToken, authorizeRoles(['admin']), requestController.rejectRequest);
 
 // Rutas que pueden usar tanto admin como usuarios
 router.delete('/:id', authenticateToken,requestController.deleteRequest);

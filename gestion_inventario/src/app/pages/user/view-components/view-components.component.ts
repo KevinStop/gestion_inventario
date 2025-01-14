@@ -6,13 +6,16 @@ import { ComponentService, ComponentResponse } from '../../../services/component
 import { RequestService } from '../../../services/request.service';
 import { CategoryService } from '../../../services/category.service';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { ConfirmationService, MessageService } from 'primeng/api';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-view-components',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ToastModule],
   templateUrl: './view-components.component.html',
   styleUrls: ['./view-components.component.css'],
+  providers: [MessageService, ConfirmationService],
 })
 export default class ViewComponentsComponent implements OnInit {
   components: ComponentResponse[] = [];
@@ -26,6 +29,7 @@ export default class ViewComponentsComponent implements OnInit {
     private requestService: RequestService,
     private sweetalertService: SweetalertService,
     private categoryService: CategoryService,
+    private messageService: MessageService,
   ) {}
 
   ngOnInit(): void {
@@ -67,11 +71,11 @@ export default class ViewComponentsComponent implements OnInit {
     const component = this.components.find((comp) => comp.id === componentId);
     if (component) {
       if (quantity > component.availableQuantity) {
-        // Si la cantidad supera la disponible, se ajusta al máximo permitido
         this.selectedQuantities[componentId] = component.availableQuantity;
         this.sweetalertService.error(
           `La cantidad no puede exceder el máximo disponible (${component.availableQuantity}).`
         );
+        this.loadSelectedComponents();
       } else {
         this.selectedQuantities[componentId] = quantity;
       }
@@ -123,12 +127,18 @@ export default class ViewComponentsComponent implements OnInit {
   // Método para agregar un componente a la lista de seleccionados
   addToSelectedList(component: any): void {
     const quantity = this.selectedQuantities[component.id];
-    if (quantity && quantity > 0) {
-      // Solo agregar al carrito si la cantidad es válida (mayor a 0)
+    if (quantity && quantity > 0 && Number.isInteger(quantity)) {
       this.requestService.addSelectedComponentToStorage(component, quantity);
-      this.sweetalertService.success('Componente agregado exitosamente.');
+      this.messageService.add({
+        severity: 'info',
+        summary: 'Componente agregado',
+        detail: 'Componente agregado exitosamente. ',
+        life: 2000,
+      });
+      return;
     } else {
       this.sweetalertService.error('Debe seleccionar una cantidad válida para agregar el componente.');
+      this.loadSelectedComponents();
     }
   }
 
