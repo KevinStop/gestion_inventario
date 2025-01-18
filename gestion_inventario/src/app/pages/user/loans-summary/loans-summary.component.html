@@ -74,9 +74,10 @@
             <select id="typeRequest" formControlName="typeRequest" name="typeRequest"
               class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:ring-primary-500 focus:border-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
               <option value="" disabled selected>Selecciona el tipo de préstamo</option>
-              <option value="general">General</option>
-              <option value="urgente">Urgente</option>
-              <option value="especial">Especial</option>
+              <option value="Trabajo UIC">Trabajo UIC</option>
+              <option value="Guias de laboratorio">Guía de laboratorio</option>
+              <option value="Proyectos de vinculacion">Proyecto de vinculación</option>
+              <option value="Proyectos de investigacion">Proyectos de investigación</option>
             </select>
             <p *ngIf="formGroup.get('typeRequest')?.hasError('required') && formGroup.get('typeRequest')?.touched"
               class="text-red-500 text-sm">

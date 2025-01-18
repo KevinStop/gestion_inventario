@@ -11,7 +11,7 @@ class BaseReportTemplate {
   }
 
   // Inicializar el reporte con la estructura básica
-  async initializeReport(filters = {}) {
+  async initializeReport() {
     const doc = this.pdfGenerator.initializeDocument().addHeader(this.title);
 
     // Agregar subtítulo si existe
@@ -19,62 +19,7 @@ class BaseReportTemplate {
       doc.doc.fontSize(14).text(this.subtitle, { align: "center" }).moveDown();
     }
 
-    // Agregar sección de filtros si existen
-    if (Object.keys(filters).length > 0) {
-      this.addFormattedFilters(doc, filters);
-    }
-
     return doc;
-  }
-
-  // Formatear y agregar filtros aplicados
-  addFormattedFilters(doc, filters) {
-    const formattedFilters = {};
-
-    for (const [key, value] of Object.entries(filters)) {
-      // Formatear diferentes tipos de filtros
-      switch (key) {
-        case "startDate":
-        case "endDate":
-          formattedFilters[this.getFilterLabel(key)] =
-            this.formatter.formatDate(value);
-          break;
-        case "status":
-          formattedFilters[this.getFilterLabel(key)] =
-            this.formatter.formatRequestStatus(value);
-          break;
-        case "movementType":
-          formattedFilters[this.getFilterLabel(key)] =
-            this.formatter.formatMovementType(value);
-          break;
-        case "academicPeriod":
-          formattedFilters[this.getFilterLabel(key)] =
-            this.formatter.formatAcademicPeriod(value);
-          break;
-        default:
-          formattedFilters[this.getFilterLabel(key)] = value;
-      }
-    }
-
-    doc.addFiltersSection(formattedFilters);
-    return doc;
-  }
-
-  // Obtener etiquetas en español para los filtros
-  getFilterLabel(key) {
-    const labels = {
-      startDate: "Fecha inicial",
-      endDate: "Fecha final",
-      status: "Estado",
-      movementType: "Tipo de movimiento",
-      componentId: "Componente",
-      userId: "Usuario",
-      academicPeriod: "Periodo académico",
-      category: "Categoría",
-      quantity: "Cantidad",
-      returnDate: "Fecha de devolución",
-    };
-    return labels[key] || key;
   }
 
   // Agregar sección de resumen si es necesario

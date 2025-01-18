@@ -59,6 +59,6 @@ export default class RequestDetailsComponent implements OnInit {
   }
 
   goBack(): void {
-    this.router.navigate(['/home/viewComponents']);
+    this.router.navigate(['/home/requestView']);
   }
 }

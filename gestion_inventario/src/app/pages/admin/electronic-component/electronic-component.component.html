@@ -162,9 +162,7 @@
                         </td>
                         <td class="px-4 py-3 font-medium text-gray-900 whitespace-nowrap dark:text-white">
                             <div class="flex items-center space-x-4">
-                                <button (click)="openDrawerForUpdate(component)"
-                                    data-drawer-target="drawer-update-product" data-drawer-show="drawer-update-product"
-                                    aria-controls="drawer-update-product"
+                                <button (click)="openModalForUpdate(component)"
                                     class="py-2 px-3 flex items-center text-sm font-medium text-center text-white bg-primary-700 rounded-lg hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 -ml-0.5"
                                         viewbox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -177,7 +175,6 @@
                                     Editar
                                 </button>
                                 <button (click)="openDeleteModal(component.id, false)" type="button"
-                                    data-modal-target="delete-modal" data-modal-toggle="delete-modal"
                                     class="flex items-center text-red-700 hover:text-white border border-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 font-medium rounded-lg text-sm px-3 py-2 text-center dark:border-red-500 dark:text-red-500 dark:hover:text-white dark:hover:bg-red-600 dark:focus:ring-red-900">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2 -ml-0.5"
                                         viewbox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -197,92 +194,99 @@
 </div>
 <!-- End block -->
 
-<!-- drawer component -->
-<form [formGroup]="updateForm" (ngSubmit)="updateComponent()" id="drawer-update-product"
-    class="fixed top-0 left-0 z-40 w-full h-screen max-w-2xl p-4 overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-gray-800"
-    [ngClass]="{'-translate-x-full': !isDrawerOpen, 'translate-x-0': isDrawerOpen}" tabindex="-1"
-    aria-labelledby="drawer-update-product-label" aria-hidden="true">
-    <h5 id="drawer-label"
-        class="inline-flex items-center mb-6 text-sm font-semibold text-gray-500 uppercase dark:text-gray-400">
-        Actualizar producto</h5>
-    <button type="button" data-drawer-dismiss="drawer-update-product" aria-controls="drawer-update-product"
-        (click)="closeDrawer()"
-        class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 absolute top-2.5 right-2.5 inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white">
-        <svg aria-hidden="true" class="w-5 h-5" fill="currentColor" viewbox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg">
-            <path fill-rule="evenodd"
-                d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                clip-rule="evenodd" />
-        </svg>
-        <span class="sr-only">Close menu</span>
-    </button>
-    <div class="grid gap-4 sm:grid-cols-2 sm:gap-6 ">
-        <div class="space-y-4 sm:col-span-1 sm:space-y-6">
-            <div>
-                <label for="name" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre
-                    Componente</label>
-                <input type="text" name="name" id="name" formControlName="name"
-                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-                    placeholder="Ingresa el nombre del componente" required>
-                <p *ngIf="updateForm.get('name')?.invalid && updateForm.get('name')?.touched"
-                    class="text-red-500 text-sm">El nombre es obligatorio y debe tener al menos 3 caracteres.</p>
+<div [ngClass]="{'hidden': !isModalOpen}" id="updateProductModal" tabindex="-1" aria-hidden="true"
+    class="fixed top-0 right-0 left-0 z-50 flex justify-center items-center w-full h-full bg-black bg-opacity-50">
+    <div class="relative w-full max-w-2xl max-h-full p-4">
+        <!-- Modal content -->
+        <div class="relative bg-white rounded-lg shadow dark:bg-gray-800">
+            <!-- Modal header -->
+            <div class="flex items-start justify-between p-4 border-b rounded-t dark:border-gray-600">
+                <h3 class="text-xl font-semibold text-gray-900 dark:text-white">
+                    Actualizar Componente
+                </h3>
+                <button type="button" (click)="closeModal()"
+                    class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm w-8 h-8 ml-auto inline-flex justify-center items-center dark:hover:bg-gray-600 dark:hover:text-white">
+                    <svg class="w-3 h-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
+                        <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
+                    </svg>
+                    <span class="sr-only">Cerrar modal</span>
+                </button>
             </div>
-            <div>
-                <label for="description"
-                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Descripcion</label>
-                <div class="w-full border border-gray-200 rounded-lg bg-gray-50 dark:bg-gray-700 dark:border-gray-600">
-                    <div class="px-4 py-3 bg-white rounded-b-lg dark:bg-gray-800">
-                        <textarea id="description" name="description" formControlName="description" rows="5"
-                            class="block w-full px-0 text-sm text-gray-800 bg-white border-0 dark:bg-gray-800 focus:ring-0 dark:text-white dark:placeholder-gray-400">
-                    </textarea>
-                        <p *ngIf="updateForm.get('description')?.invalid && updateForm.get('description')?.touched"
-                            class="text-red-500 text-sm">La descripción es obligatoria y debe tener al menos 10
-                            caracteres.</p>
+            <!-- Modal body -->
+            <form [formGroup]="updateForm" (ngSubmit)="updateComponent()">
+                <div class="p-6 space-y-6">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="space-y-4">
+                            <div>
+                                <label for="name"
+                                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Nombre
+                                    Componente</label>
+                                <input type="text" name="name" id="name" formControlName="name"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                                    placeholder="Ingresa el nombre del componente" required>
+                                <p *ngIf="updateForm.get('name')?.invalid && updateForm.get('name')?.touched"
+                                    class="text-red-500 text-sm">El nombre es obligatorio y debe tener al menos 3
+                                    caracteres.</p>
+                            </div>
+                            <div>
+                                <label for="description"
+                                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Descripción</label>
+                                <textarea id="description" name="description" formControlName="description" rows="4"
+                                    class="block w-full p-2.5 text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 focus:ring-primary-500 focus:border-primary-500 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
+                                    placeholder="Escribe la descripción del componente"></textarea>
+                                <p *ngIf="updateForm.get('description')?.invalid && updateForm.get('description')?.touched"
+                                    class="text-red-500 text-sm">La descripción es obligatoria y debe tener al menos 10
+                                    caracteres.</p>
+                            </div>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label for="category"
+                                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Categoría</label>
+                                <select formControlName="categoryId" name="category" id="category"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                    <option *ngFor="let category of categories; trackBy: trackByFn" [value]="category.id">
+                                        {{ category.name }}
+                                    </option>
+                                </select>
+                                <p *ngIf="updateForm.get('categoryId')?.invalid && updateForm.get('categoryId')?.touched"
+                                    class="text-red-500 text-sm">Debe seleccionar una categoría.</p>
+                            </div>
+                            <div>
+                                <label for="status"
+                                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Estado</label>
+                                <select formControlName="isActive" name="status" id="status"
+                                    class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
+                                    <option [ngValue]="true">Activo</option>
+                                    <option [ngValue]="false">Inactivo</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="image"
+                                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Imagen
+                                    Componente</label>
+                                <input id="dropzone-file" type="file" (change)="onImageSelected($event)"
+                                    class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400">
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        <div class="space-y-4 sm:space-y-6">
-            <div>
-                <label for="category"
-                    class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Categoría</label>
-                <select formControlName="categoryId" name="category" id="category" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 
-                                    focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 
-                                    dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
-                    required>
-                    <option *ngFor="let category of categories; trackBy: trackByFn" [value]="category.id">{{
-                        category.name }}
-                    </option>
-                </select>
-                <p *ngIf="updateForm.get('categoryId')?.invalid && updateForm.get('categoryId')?.touched"
-                    class="text-red-500 text-sm">Debe seleccionar una categoría.</p>
-            </div>
-            <div>
-                <label for="status" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Estado</label>
-                <select formControlName="isActive" name="status" id="status" class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-600 
-                            focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 
-                            dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500" required>
-                    <option [ngValue]="true">Activo</option>
-                    <option [ngValue]="false">Inactivo</option>
-                </select>
-            </div>
+                <!-- Modal footer -->
+                <div class="flex items-center p-6 space-x-2 border-t border-gray-200 rounded-b dark:border-gray-600">
+                    <button type="submit"
+                        class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
+                        Actualizar componente
+                    </button>
+                    <button type="button" (click)="closeModal()"
+                        class="text-gray-500 bg-white hover:bg-gray-100 focus:ring-4 focus:outline-none focus:ring-primary-300 rounded-lg border border-gray-200 text-sm font-medium px-5 py-2.5 hover:text-gray-900 focus:z-10 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-500 dark:hover:text-white dark:hover:bg-gray-600 dark:focus:ring-gray-600">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
-    <div class="grid grid-cols-1 gap-4 mt-6">
-        <div>
-            <label for="image" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Imagen
-                Componente</label>
-            <input id="dropzone-file" type="file" (change)="onImageSelected($event)" class="hidden"
-                class="pl-2 bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500">
-        </div>
-    </div>
-    <div class="grid grid-cols-1 gap-4 mt-6 sm:w-1/2">
-        <button type="submit"
-            class="text-white bg-primary-700 hover:bg-primary-800 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">
-            Actualizar
-        </button>
-    </div>
-</form>
+</div>
 
 <!-- Create category modal -->
 <div id="categoryDefaultModal" tabindex="-1" aria-hidden="true"

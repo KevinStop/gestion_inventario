@@ -1,10 +1,9 @@
-import { Component, OnInit} from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { HeaderComponent } from '../header/header.component';
 import { SidebarComponent } from '../sidebar/sidebar.component';
 import { FooterComponent } from '../footer/footer.component';
 import { RouterOutlet } from '@angular/router';
 import { initFlowbite } from 'flowbite';
-import { RequestService } from '../../services/request.service';
 
 @Component({
   selector: 'app-layout',
@@ -13,25 +12,30 @@ import { RequestService } from '../../services/request.service';
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.css'
 })
-export default class LayoutComponent implements OnInit{
+export default class LayoutComponent implements OnInit {
 
-  constructor(private requestService: RequestService) {}
+  constructor() { }
 
   ngOnInit(): void {
     initFlowbite();
-    this.requestService.initialize();
 
-    // On page load or when changing themes, best to add inline in `head` to avoid FOUC
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
+    // Establecer tema claro por defecto si no hay preferencia guardada
+    if (!localStorage.getItem('color-theme')) {
+      localStorage.setItem('color-theme', 'light');
     }
-    // Change the icons inside the button based on previous settings
+
+    // Aplicar tema según la configuración
+    if (localStorage.getItem('color-theme') === 'light') {
+      document.documentElement.classList.add('light');
+    } else {
+      document.documentElement.classList.remove('light');
+    }
+
+    // Configurar los iconos
     const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
     const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
 
-    if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    if (localStorage.getItem('color-theme') === 'dark') {
       themeToggleLightIcon!.classList.remove('hidden');
     } else {
       themeToggleDarkIcon!.classList.remove('hidden');
@@ -44,25 +48,13 @@ export default class LayoutComponent implements OnInit{
       themeToggleDarkIcon!.classList.toggle('hidden');
       themeToggleLightIcon!.classList.toggle('hidden');
 
-      // If set via local storage previously
-      if (localStorage.getItem('color-theme')) {
-        if (localStorage.getItem('color-theme') === 'light') {
-          document.documentElement.classList.add('dark');
-          localStorage.setItem('color-theme', 'dark');
-        } else {
-          document.documentElement.classList.remove('dark');
-          localStorage.setItem('color-theme', 'light');
-        }
-
-        // If NOT set via local storage previously
+      // Cambiar tema
+      if (localStorage.getItem('color-theme') === 'light') {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('color-theme', 'dark');
       } else {
-        if (document.documentElement.classList.contains('dark')) {
-          document.documentElement.classList.remove('dark');
-          localStorage.setItem('color-theme', 'light');
-        } else {
-          document.documentElement.classList.add('dark');
-          localStorage.setItem('color-theme', 'dark');
-        }
+        document.documentElement.classList.remove('dark');
+        localStorage.setItem('color-theme', 'light');
       }
     });
   }

@@ -3,19 +3,26 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../environments/environment';
 
+export interface AvailabilityDetails {
+  total: number;
+  available: number;
+  inLoans: number;
+  inRequests: number;
+}
+
 export interface ComponentResponse {
   id: number;
   name: string;
   description?: string;
   quantity: number;
   availableQuantity: number;
-  loanedQuantity?: number;
+  availabilityDetails?: AvailabilityDetails;
   isActive: boolean;
   imageUrl?: string;
   categoryId: number;
   category: any;
-  createdAt:Date;
-  updatedAt:Date;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface ComponentsResponse {

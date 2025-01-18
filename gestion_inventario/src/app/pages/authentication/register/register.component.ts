@@ -42,10 +42,10 @@ export default class RegisterComponent implements OnInit {
     }
 
     // Aplicar tema según la configuración
-    if (localStorage.getItem('color-theme') === 'dark') {
-      document.documentElement.classList.add('dark');
+    if (localStorage.getItem('color-theme') === 'light') {
+      document.documentElement.classList.add('light');
     } else {
-      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.remove('light');
     }
 
     // Configurar los iconos

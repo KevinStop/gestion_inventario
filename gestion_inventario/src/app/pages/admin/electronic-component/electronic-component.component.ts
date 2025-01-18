@@ -29,7 +29,7 @@ export default class ElectronicComponentComponent implements OnInit {
   categories: any[] = [];
   newCategory: any = { name: '' };
   selectedCategory: any = { name: '' };
-  isDrawerOpen: boolean = false;
+  isModalOpen: boolean = false;
   selectedStatus: string | null = null;
   deleteItemType: string = '';
   isEditingCategory: boolean = false;
@@ -42,7 +42,7 @@ export default class ElectronicComponentComponent implements OnInit {
     this.updateForm = this.formBuilder.group({
       id: [null],
       name: ['', [Validators.required, Validators.minLength(3)]],
-      description: ['', [Validators.required, Validators.minLength(10)]],
+      description: ['', [Validators.required]],
       categoryId: ['', [Validators.required]],
       isActive: [true, [Validators.required]]
     });
@@ -102,7 +102,7 @@ export default class ElectronicComponentComponent implements OnInit {
     }
   }
 
-  openDrawerForUpdate(component: any): void {
+  openModalForUpdate(component: any): void {
     this.updateForm.patchValue({
       id: component.id,
       name: component.name,
@@ -110,7 +110,7 @@ export default class ElectronicComponentComponent implements OnInit {
       categoryId: component.categoryId,
       isActive: component.isActive
     });
-    this.isDrawerOpen = true;
+    this.isModalOpen = true;
   }
 
   updateComponent(): void {
@@ -130,16 +130,15 @@ export default class ElectronicComponentComponent implements OnInit {
     this.componentService.updateComponent(updatedComponent.id, updatedComponent, this.selectedImage).subscribe(
       () => {
         this.getComponents();
-        this.isDrawerOpen = false;
+        this.closeModal();
         this.sweetalertService.success('Componente actualizado satisfactoriamente.');
-        this.imagePreviewUrl == '';
       },
       (error) => {
         console.error('Error al actualizar el componente:', error);
         this.sweetalertService.error('Hubo un error al intentar actualizar el componente.');
       }
     );
-  }  
+  } 
 
   openDeleteModal(id: number, isCategory: boolean): void {
     this.deleteItemType = isCategory ? 'esta categoría' : 'este componente';
@@ -194,8 +193,11 @@ export default class ElectronicComponentComponent implements OnInit {
     }
   }
 
-  closeDrawer(): void {
-    this.isDrawerOpen = false;
+  closeModal(): void {
+    this.isModalOpen = false;
+    this.updateForm.reset();
+    this.selectedImage = undefined;
+    this.imagePreviewUrl = undefined;
   }
 
   // Método para crear la categoría

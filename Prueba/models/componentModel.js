@@ -97,12 +97,11 @@ const getAllComponents = async (status, includeAvailable = true) => {
 
     if (includeAvailable) {
       components = await Promise.all(components.map(async (component) => {
-        const availableQuantity = await calculateAvailableQuantity(component.id);
+        const availability = await calculateAvailableQuantity(component.id);
         return {
           ...component,
-          availableQuantity,
-          loanedQuantity: component.quantity - availableQuantity,
-          activeLoans: component.loanHistories.length
+          ...availability,
+          loanedQuantity: component.quantity - availability.availableQuantity
         };
       }));
     }
@@ -266,61 +265,48 @@ const getComponentCount = async () => {
 // Función auxiliar para calcular la cantidad disponible de un componente
 const calculateAvailableQuantity = async (componentId) => {
   try {
-    // Obtener la cantidad total del componente
+    // 1. Obtener el componente con sus relaciones
     const component = await prisma.component.findUnique({
-      where: { id: componentId }
+      where: { id: componentId },
+      include: {
+        // Solo incluimos requestDetails ya que es lo que usaremos para el cálculo
+        requestDetails: {
+          where: {
+            request: {
+              status: 'prestamo',
+              isActive: true
+            }
+          },
+          include: {
+            request: true
+          }
+        }
+      }
     });
 
     if (!component) {
       throw new Error('Componente no encontrado');
     }
 
-    // Obtener la cantidad en préstamo activo
-    const activeLoans = await prisma.loanHistory.findMany({
-      where: {
-        componentId,
-        status: 'no_devuelto'
+    // 2. Calcular cantidad en préstamo desde requestDetails
+    const totalInRequests = component.requestDetails.reduce((sum, detail) => {
+      if (detail.request.status === 'prestamo') {
+        return sum + detail.quantity;
       }
-    });
+      return sum;
+    }, 0);
 
-    // Sumar manualmente las cantidades de los préstamos activos
-    const totalLoaned = activeLoans.reduce((sum, loan) => sum + 1, 0);
+    // 3. Calcular cantidad disponible
+    const availableQuantity = Math.max(0, component.quantity - totalInRequests);
 
-    // Calcular cantidad disponible
-    const availableQuantity = component.quantity - totalLoaned;
-
-    return availableQuantity;
+    return {
+      totalQuantity: component.quantity,
+      availableQuantity: availableQuantity,
+      inRequests: totalInRequests
+    };
   } catch (error) {
     console.error('Error calculando cantidad disponible:', error);
     throw new Error('Error al calcular cantidad disponible');
-  }
-};
-
-// Verificar disponibilidad antes de crear una solicitud
-const checkComponentAvailability = async (componentId, requestedQuantity) => {
-  try {
-    const availableQuantity = await calculateAvailableQuantity(componentId);
-    
-    // Verificar también en LoanHistory por préstamos pendientes
-    const pendingLoans = await prisma.loanHistory.findMany({
-      where: {
-        componentId,
-        status: 'no_devuelto'
-      }
-    });
-    
-    if (availableQuantity < requestedQuantity) {
-      throw new Error(`Cantidad insuficiente disponible. Disponible: ${availableQuantity}`);
-    }
-    
-    return {
-      isAvailable: true,
-      availableQuantity,
-      pendingLoans: pendingLoans.length
-    };
-  } catch (error) {
-    console.error('Error verificando disponibilidad:', error);
-    throw error;
   }
 };
 
@@ -333,6 +319,5 @@ module.exports = {
   searchComponentsByName,
   filterComponentsByCategories,
   getComponentCount,
-  checkComponentAvailability,
   calculateAvailableQuantity
 };

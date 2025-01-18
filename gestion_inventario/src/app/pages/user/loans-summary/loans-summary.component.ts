@@ -118,11 +118,14 @@ export default class LoansSummaryComponent implements OnInit {
   }
 
   submitRequest(): void {
+    // Validación del formulario
     if (this.formGroup.invalid) {
       this.formGroup.markAllAsTouched();
       this.sweetalertService.error('Debe completar todos los campos requeridos.');
       return;
     }
+
+    // Validación de componentes seleccionados
     if (!this.hasSelectedComponents()) {
       this.sweetalertService.error('Debe seleccionar al menos un componente.');
       return;
@@ -152,7 +155,12 @@ export default class LoansSummaryComponent implements OnInit {
         this.requestService.setSelectedComponents([]);
       },
       (error) => {
-        console.error('Error al enviar la solicitud:', error);
+        console.error('Error detallado al enviar la solicitud:', {
+          error: error,
+          status: error.status,
+          message: error.message,
+          formData: formData
+        });
         this.sweetalertService.error('Error al enviar la solicitud.');
       }
     );

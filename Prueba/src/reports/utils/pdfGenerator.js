@@ -104,27 +104,6 @@ class PDFGenerator {
     return this;
   }
 
-  addFiltersSection(filters) {
-    const contentBottom = this.doc.page.height - 70;
-    
-    this.doc
-      .fontSize(12)
-      .text("Filtros aplicados:", 50, this.doc.y + 10)
-      .fontSize(10);
-
-    Object.entries(filters).forEach(([key, value]) => {
-      // Verificar si necesitamos una nueva página
-      if (this.doc.y + 20 > contentBottom) {
-        this.doc.addPage();
-        this.doc.y = 50;
-      }
-      this.doc.text(`${key}: ${value}`, 70, this.doc.y + 5);
-    });
-
-    this.doc.moveDown(2);
-    return this;
-  }
-
   getDocument() {
     return this.doc;
   }

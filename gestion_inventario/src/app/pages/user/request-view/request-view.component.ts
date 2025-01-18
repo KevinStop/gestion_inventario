@@ -6,11 +6,13 @@ import { CommonModule } from '@angular/common';
 import { initFlowbite } from 'flowbite';
 import { Router } from '@angular/router';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { TableModule } from 'primeng/table';
+import { PaginatorModule } from 'primeng/paginator';
 
 @Component({
   selector: 'app-request-view',
   standalone: true,
-  imports: [FormsModule, CommonModule],
+  imports: [FormsModule, CommonModule, TableModule, PaginatorModule],
   templateUrl: './request-view.component.html',
   styleUrls: ['./request-view.component.css'],
   

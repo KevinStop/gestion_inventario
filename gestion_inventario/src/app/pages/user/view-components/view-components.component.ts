@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { initFlowbite } from 'flowbite';
 import { FormsModule } from '@angular/forms';
@@ -23,6 +23,7 @@ export default class ViewComponentsComponent implements OnInit {
   selectedCategories: number[] = [];
   filteredComponents: ComponentResponse[] = [];
   categories: any[] = [];
+  isFilterMenuOpen = false;
 
   constructor(
     private componentService: ComponentService,
@@ -53,11 +54,13 @@ export default class ViewComponentsComponent implements OnInit {
 
   getComponents(): void {
     this.componentService.getComponents(true).subscribe(
-      (response) => {
-        // Filtrar componentes activos y con cantidad disponible
-        this.components = response.components.filter(component => 
-          component.isActive && component.availableQuantity > 0
-        );
+      (response) => {        
+        this.components = response.components.filter(component => {
+          const isValid = component.isActive && component.availableQuantity > 0;
+          
+          return isValid;
+        });
+        
         this.filteredComponents = [...this.components];
       },
       (error) => {
@@ -70,12 +73,27 @@ export default class ViewComponentsComponent implements OnInit {
   onQuantityChange(componentId: number, quantity: number): void {
     const component = this.components.find((comp) => comp.id === componentId);
     if (component) {
-      if (quantity > component.availableQuantity) {
-        this.selectedQuantities[componentId] = component.availableQuantity;
+      const maxAvailable = component.availableQuantity;
+      
+      if (quantity > maxAvailable) {
+        this.selectedQuantities[componentId] = maxAvailable;
         this.sweetalertService.error(
-          `La cantidad no puede exceder el máximo disponible (${component.availableQuantity}).`
+          `La cantidad no puede exceder el máximo disponible (${maxAvailable}).`
         );
-        this.loadSelectedComponents();
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Cantidad ajustada',
+          detail: `La cantidad se ha ajustado al máximo disponible: ${maxAvailable}`,
+          life: 3000,
+        });
+      } else if (quantity <= 0) {
+        this.selectedQuantities[componentId] = 1;
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Cantidad inválida',
+          detail: 'La cantidad debe ser mayor a 0',
+          life: 3000,
+        });
       } else {
         this.selectedQuantities[componentId] = quantity;
       }
@@ -102,6 +120,7 @@ export default class ViewComponentsComponent implements OnInit {
     } else {
       this.filteredComponents = [...this.components];
     }
+    this.isFilterMenuOpen = false;
   }
 
   resetFilters(): void {
@@ -113,6 +132,8 @@ export default class ViewComponentsComponent implements OnInit {
     checkboxes.forEach(checkbox => {
       checkbox.checked = false;
     });
+    
+    this.isFilterMenuOpen = false;
   }
 
   // Cargar los componentes seleccionados desde localStorage
@@ -145,5 +166,16 @@ export default class ViewComponentsComponent implements OnInit {
   handleCategoryChange(event: Event, categoryId: number): void {
     const checkbox = event.target as HTMLInputElement;
     this.onCategoryChange(categoryId, checkbox.checked);
+  }
+  toggleFilterMenu(): void {
+    this.isFilterMenuOpen = !this.isFilterMenuOpen;
+  }
+
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: Event): void {
+    const filterMenu = document.querySelector('.relative.inline-block');
+    if (filterMenu && !filterMenu.contains(event.target as Node)) {
+      this.isFilterMenuOpen = false;
+    }
   }
 }

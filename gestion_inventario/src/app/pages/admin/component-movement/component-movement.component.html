@@ -179,12 +179,12 @@
                             </div>
 
                             <div>
-                                <label for="quantity" 
+                                <label for="quantity"
                                     class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
                                     Cantidad
                                 </label>
-                                <input type="number" [(ngModel)]="newComponent.quantity" name="quantity" id="quantity" step="1"
-                                    (input)="onQuantityChange2()"
+                                <input type="number" [(ngModel)]="newComponent.quantity" name="quantity" id="quantity"
+                                    step="1" (input)="onQuantityChange2()"
                                     class="bg-gray-50 border text-gray-900 text-sm rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5
                                     dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
                                     [class.border-red-500]="!quantityValid && showErrors"
@@ -213,36 +213,9 @@
                                 <span class="block mb-2 text-base font-medium text-gray-900 dark:text-white">
                                     Imagen de Componente
                                 </span>
-                                <div class="flex justify-center items-center w-full">
-                                    <label for="dropzone-file"
-                                        class="flex flex-col justify-center items-center w-full h-64 bg-gray-50 rounded-lg border-2 border-gray-300 border-dashed cursor-pointer dark:hover:bg-bray-800 dark:bg-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:hover:border-gray-500 dark:hover:bg-gray-600">
-                                        <div *ngIf="imagePreviewUrl" class="relative">
-                                            <img [src]="imagePreviewUrl" alt="Previsualización de imagen"
-                                                class="w-32 h-32 object-cover rounded-md mb-2">
-                                            <button type="button" (click)="removeImage()"
-                                                class="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 focus:outline-none">
-                                                ✖
-                                            </button>
-                                        </div>
-                                        <div *ngIf="!imagePreviewUrl"
-                                            class="flex flex-col justify-center items-center pt-5 pb-6">
-                                            <svg aria-hidden="true" class="mb-3 w-10 h-10 text-gray-400" fill="none"
-                                                stroke="currentColor" viewBox="0 0 24 24"
-                                                xmlns="http://www.w3.org/2000/svg">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                    d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                            </svg>
-                                            <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                                                <span class="font-semibold">Click para subir</span> o arrastrar y soltar
-                                            </p>
-                                            <p class="text-xs text-gray-500 dark:text-gray-400">
-                                                SVG, PNG, JPG o GIF (MAX. 800x400px)
-                                            </p>
-                                        </div>
-                                        <input id="dropzone-file" type="file" (change)="onImageSelected($event)"
-                                            class="hidden">
-                                    </label>
-                                </div>
+                                <input id="comprobante" type="file" accept=".png, .jpg, .jpeg, .pdf" 
+                                (change)="onImageSelected($event)" name="componente"
+                                    class="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400" />
                                 <p *ngIf="!imageValid && showErrors" class="text-sm text-red-500 mt-2">
                                     La imagen es obligatoria.
                                 </p>

@@ -32,36 +32,67 @@ const createComponentWithMovement = async (req, res) => {
 
 // Obtener todos los componentes con filtro por estado
 const getAllComponents = async (req, res) => {
-  const { name, status, includeAvailable } = req.query;
+  const { name, status, includeAvailable, categoryId } = req.query;
   const shouldIncludeAvailable = includeAvailable !== 'false'; // Por defecto true
 
   try {
     let components;
+    
+    // Buscar por nombre si se proporciona
     if (name) {
       components = await componentModel.searchComponentsByName(name);
-    } else {
+    } 
+    // Filtrar por categoría si se proporciona
+    else if (categoryId) {
+      components = await componentModel.filterComponentsByCategories(categoryId);
+    } 
+    // Obtener todos con disponibilidad
+    else {
       components = await componentModel.getAllComponents(status, shouldIncludeAvailable);
     }
 
-    // Si es un usuario normal, solo enviar componentes activos y con cantidad disponible
+    // Procesar los resultados según el rol del usuario
     if (req.user?.role === 'user') {
-      components = components.filter(comp => comp.isActive && comp.availableQuantity > 0);
-      
-      // Simplificar la respuesta para usuarios
+      components = components
+        .filter(comp => comp.isActive && comp.availableQuantity > 0)
+        .map(comp => ({
+          id: comp.id,
+          name: comp.name,
+          description: comp.description,
+          imageUrl: comp.imageUrl,
+          category: comp.category,
+          quantity: comp.availableQuantity,
+          availableQuantity: comp.availableQuantity,
+          categoryId: comp.categoryId
+        }));
+    } else {
+      // Para administradores, incluir información adicional
       components = components.map(comp => ({
-        id: comp.id,
-        name: comp.name,
-        description: comp.description,
-        imageUrl: comp.imageUrl,
-        category: comp.category,
-        quantity: comp.availableQuantity, // Mostrar solo la cantidad disponible
-        categoryId: comp.categoryId
+        ...comp,
+        availabilityDetails: {
+          total: comp.quantity,
+          available: comp.availableQuantity,
+          inLoans: comp.inLoans || 0,
+          inRequests: comp.inRequests || 0
+        }
       }));
     }
 
-    res.status(200).json({ components });
+    res.status(200).json({ 
+      components,
+      total: components.length,
+      filters: {
+        name,
+        status,
+        categoryId
+      }
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('Error getting components:', error);
+    res.status(500).json({ 
+      error: 'Error al obtener los componentes',
+      details: error.message 
+    });
   }
 };
 
