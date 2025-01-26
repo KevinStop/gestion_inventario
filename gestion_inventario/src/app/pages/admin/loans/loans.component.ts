@@ -6,6 +6,9 @@ import { ReportService } from '../../../services/report.service';
 import { CategoryService } from '../../../services/category.service';
 import { ComponentService, ComponentResponse } from '../../../services/component.service';
 import { AcademicPeriodsService } from '../../../services/academic-periods.service';
+import { TableModule } from 'primeng/table';
+import { PaginatorModule } from 'primeng/paginator';
+import { UserService } from '../../../services/user.service';
 
 import Swal from 'sweetalert2';
 
@@ -21,6 +24,8 @@ interface PreviewResponse {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    TableModule,
+    PaginatorModule
   ],
   templateUrl: './loans.component.html',
   styleUrl: './loans.component.css'
@@ -37,6 +42,9 @@ export default class LoansComponent implements OnInit {
   filterForm: FormGroup;
   isLoading: boolean = false;
   showFilters: boolean = false;
+  users: any[] = [];
+  filteredUsers: any[] = [];
+  searchTerm: string = '';
 
   // Definir tipos de filtros disponibles
   filterTypes = {
@@ -51,6 +59,7 @@ export default class LoansComponent implements OnInit {
     private categoryService: CategoryService,
     private componentService: ComponentService,
     private academicPeriodsService: AcademicPeriodsService,
+    private userService: UserService
   ) {
     // Inicializar formulario vacío
     this.filterForm = this.fb.group({});
@@ -62,6 +71,21 @@ export default class LoansComponent implements OnInit {
     this.getComponents();
     this.loadAvailableReports();
     this.loadPeriods();
+    this.loadUsers();
+  }
+
+  loadUsers(): void {
+    this.userService.getAllUsers().subscribe({
+      next: (data) => {
+        this.users = data;
+        this.filteredUsers = data;
+      },
+      error: (err) => console.error('Error cargando usuarios:', err)
+    });
+  }
+
+  filterUsers(): void {
+    this.filteredUsers = this.userService.filterUsersByName(this.users, this.searchTerm);
   }
 
   // Cargar períodos activos e inactivos
@@ -119,6 +143,8 @@ export default class LoansComponent implements OnInit {
     this.selectedReport = value;
     this.showFilters = true;
     this.initializeFilters(value);
+    this.previewData = [];
+    this.previewHeaders = [];
   }
 
   // Inicializar filtros según el tipo de reporte

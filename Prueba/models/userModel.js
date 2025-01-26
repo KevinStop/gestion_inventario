@@ -153,10 +153,31 @@ const getUserById = async (id) => {
   }
 };
 
+const getAllUsers = async () => {
+  try {
+    const users = await prisma.user.findMany({
+      where: {
+        role: 'user',
+        isActive: true
+      },
+      select: {
+        userId: true,
+        name: true,
+        email: true,
+        imageUrl: true
+      }
+    });
+    return users;
+  } catch (error) {
+    throw new Error("Error al obtener usuarios");
+  }
+};
+
 module.exports = {
   createUser,
   updateUser,
   deactivateUser,
   verifyUserCredentials,
   getUserById,
+  getAllUsers
 };

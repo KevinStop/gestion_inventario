@@ -64,8 +64,9 @@ export class RequestService {
     const formData = new FormData();
     formData.append('userId', this.userId.toString());
     formData.append('description', requestData.description || '');
-    formData.append('typeRequest', requestData.typeRequest || 'general');
+    formData.append('typeRequest', requestData.typeRequest || '');
     formData.append('returnDate', requestData.returnDate || '');
+    formData.append('responsible', requestData.responsible || '');
     formData.append('status', requestData.status || 'pendiente');
     formData.append('requestDetails', JSON.stringify(requestDetails));
     if (file) formData.append('file', file, file.name);

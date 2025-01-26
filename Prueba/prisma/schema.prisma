@@ -59,6 +59,7 @@ model Request {
   typeRequest         String             
   status              RequestStatus       @default(pendiente)
   returnDate          DateTime?
+  responsible         String?
   description         String?
   adminNotes          String?
   fileUrl             String?             @db.VarChar(255)

@@ -182,6 +182,15 @@ const getSessionTime = (req, res) => {
   }
 };
 
+const getAllUsers = async (req, res) => {
+  try {
+    const users = await userModel.getAllUsers();
+    res.status(200).json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -191,4 +200,5 @@ module.exports = {
   extendSession,
   getAuthenticatedUser,
   getSessionTime,
+  getAllUsers
 };

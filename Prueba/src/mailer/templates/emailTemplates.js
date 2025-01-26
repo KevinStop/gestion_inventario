@@ -48,46 +48,54 @@ const rejectedRequestTemplate = (requestData) => {
     `;
 };
 
-const returnReminderTemplate = (loanData) => {
-  return `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Recordatorio de Devolución</h2>
-        <p>Le recordamos que tiene componentes pendientes por devolver:</p>
-        <ul>
-          <li>Fecha de devolución: ${new Date(
-            loanData.returnDate
-          ).toLocaleDateString()}</li>
-          <li>Componentes: ${loanData.components
-            .map((c) => `${c.name} (${c.quantity})`)
-            .join(", ")}</li>
-        </ul>
-        <p>Por favor, asegúrese de realizar la devolución en la fecha indicada.</p>
-      </div>
-    `;
-};
+const returnDateTemplate = (data) => `
+  <div style="font-family: Arial, sans-serif; padding: 20px;">
+    <h2>Fecha de devolución cumplida</h2>
+    <p>Estimado/a ${data.userName},</p>
+    <p>Le recordamos que hoy es la fecha establecida para la devolución de los siguientes componentes:</p>
+    <ul>
+      ${data.components.map(comp => `
+        <li>${comp.name} (Cantidad: ${comp.quantity})</li>
+      `).join('')}
+    </ul>
+    <p>Fecha de devolución: ${new Date(data.returnDate).toLocaleDateString()}</p>
+    <p>Por favor, realice la devolución lo antes posible para evitar inconvenientes.</p>
+  </div>
+`;
 
-const notReturnedAlertTemplate = (loanData) => {
-  return `
-      <div style="font-family: Arial, sans-serif; padding: 20px;">
-        <h2>Alerta de Componentes No Devueltos</h2>
-        <p>Tiene componentes que no han sido devueltos en la fecha acordada:</p>
-        <ul>
-          <li>Fecha límite de devolución: ${new Date(
-            loanData.returnDate
-          ).toLocaleDateString()}</li>
-          <li>Componentes: ${loanData.components
-            .map((c) => `${c.name} (${c.quantity})`)
-            .join(", ")}</li>
-        </ul>
-        <p>Por favor, realice la devolución lo antes posible para evitar sanciones.</p>
-      </div>
-    `;
-};
+const adminReturnDateTemplate = (data) => `
+  <div style="font-family: Arial, sans-serif; padding: 20px;">
+    <h2>Notificación de fecha de devolución</h2>
+    <p>Se ha cumplido la fecha de devolución para los siguientes componentes:</p>
+    <p><strong>Usuario:</strong> ${data.userName} (${data.userEmail})</p>
+    <ul>
+      ${data.components.map(comp => `
+        <li>${comp.name} (Cantidad: ${comp.quantity})</li>
+      `).join('')}
+    </ul>
+    <p>Fecha de devolución: ${new Date(data.returnDate).toLocaleDateString()}</p>
+  </div>
+`;
+
+const upcomingReturnTemplate = (data) => `
+  <div style="font-family: Arial, sans-serif; padding: 20px;">
+    <h2>Recordatorio de próxima devolución</h2>
+    <p>Estimado/a ${data.userName},</p>
+    <p>Le recordamos que mañana vence el plazo para la devolución de los siguientes componentes:</p>
+    <ul>
+      ${data.components.map(comp => `
+        <li>${comp.name} (Cantidad: ${comp.quantity})</li>
+      `).join('')}
+    </ul>
+    <p>Fecha de devolución: ${new Date(data.returnDate).toLocaleDateString()}</p>
+  </div>
+`;
 
 module.exports = {
   newRequestTemplate,
   approvedRequestTemplate,
   rejectedRequestTemplate,
-  returnReminderTemplate,
-  notReturnedAlertTemplate,
+  returnDateTemplate,
+  adminReturnDateTemplate,
+  upcomingReturnTemplate
 };

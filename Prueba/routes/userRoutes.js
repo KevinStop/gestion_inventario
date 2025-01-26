@@ -13,6 +13,7 @@ router.get('/me', authenticateToken, userController.getAuthenticatedUser);
 router.put('/:id', authenticateToken, upload.single('image'), userController.updateUser);
 router.put('/:id/deactivate', authenticateToken, userController.deactivateUser);
 router.post('/logout', authenticateToken, userController.logoutUser);
+router.get('/all', authenticateToken, authorizeRoles('admin'), userController.getAllUsers);
 
 // Ruta para extender la sesión (renovar el token)
 router.post('/extend-session', authenticateToken, userController.extendSession);

@@ -76,58 +76,99 @@ class EmailService {
     }
   }
 
-  static async sendReturnReminder(loanId) {
+  static async sendReturnDateNotification(requestId) {
     try {
-      const loan = await prisma.loanHistory.findUnique({
-        where: { loanId },
+      const request = await prisma.request.findUnique({
+        where: { requestId },
         include: {
           user: true,
-          component: true,
-          request: true
+          requestDetails: {
+            include: {
+              component: true
+            }
+          }
         }
       });
 
+      if (!request) throw new Error('Solicitud no encontrada');
+
+      // Obtener admins para notificar
+      const adminUsers = await prisma.user.findMany({
+        where: { role: 'admin', isActive: true }
+      });
+
+      // Enviar correo al usuario
       await MailService.enviarCorreo(
-        loan.user.email,
-        'Recordatorio de Devolución de Componentes',
-        templates.returnReminderTemplate({
-          returnDate: loan.request.returnDate,
-          components: [{
-            name: loan.component.name,
-            quantity: 1 // Ajusta según tu lógica de negocio
-          }]
+        request.user.email,
+        'Fecha de devolución de componentes',
+        templates.returnDateTemplate({
+          userName: request.user.name,
+          returnDate: request.returnDate,
+          components: request.requestDetails.map(detail => ({
+            name: detail.component.name,
+            quantity: detail.quantity
+          }))
+        })
+      );
+
+      // Enviar correo a los administradores
+      const adminEmails = adminUsers.map(admin => admin.email);
+      await MailService.enviarCorreo(
+        adminEmails,
+        'Notificación de fecha de devolución vencida',
+        templates.adminReturnDateTemplate({
+          userName: request.user.name,
+          userEmail: request.user.email,
+          returnDate: request.returnDate,
+          components: request.requestDetails.map(detail => ({
+            name: detail.component.name,
+            quantity: detail.quantity
+          }))
         })
       );
     } catch (error) {
-      console.error('Error sending return reminder:', error);
+      console.error('Error sending return date notification:', error);
       throw error;
     }
   }
 
-  static async sendNotReturnedAlert(loanId) {
+  static async sendUpcomingReturnReminder(requestId) {
     try {
-      const loan = await prisma.loanHistory.findUnique({
-        where: { loanId },
+      const request = await prisma.request.findUnique({
+        where: { requestId },
         include: {
           user: true,
-          component: true,
-          request: true
+          requestDetails: {
+            include: {
+              component: true
+            }
+          }
         }
       });
 
-      await MailService.enviarCorreo(
-        loan.user.email,
-        'Alerta: Componentes No Devueltos',
-        templates.notReturnedAlertTemplate({
-          returnDate: loan.request.returnDate,
-          components: [{
-            name: loan.component.name,
-            quantity: 1 // Ajusta según tu lógica de negocio
-          }]
-        })
-      );
+      if (!request) throw new Error('Solicitud no encontrada');
+
+      // Solo enviar si hay al menos 3 días de diferencia entre creación y retorno
+      const creationDate = new Date(request.createdAt);
+      const returnDate = new Date(request.returnDate);
+      const diffDays = Math.ceil((returnDate.getTime() - creationDate.getTime()) / (1000 * 60 * 60 * 24));
+
+      if (diffDays >= 3) {
+        await MailService.enviarCorreo(
+          request.user.email,
+          'Recordatorio: Próxima devolución de componentes',
+          templates.upcomingReturnTemplate({
+            userName: request.user.name,
+            returnDate: request.returnDate,
+            components: request.requestDetails.map(detail => ({
+              name: detail.component.name,
+              quantity: detail.quantity
+            }))
+          })
+        );
+      }
     } catch (error) {
-      console.error('Error sending not returned alert:', error);
+      console.error('Error sending upcoming return reminder:', error);
       throw error;
     }
   }

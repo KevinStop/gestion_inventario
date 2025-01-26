@@ -15,6 +15,11 @@ export const routes: Routes = [
     canActivate: [UnauthGuard],
   },
   {
+    path: 'moduleSelection',
+    loadComponent: () => import('./components/selection-module/selection-module.component'),
+    canActivate: [AuthGuard],
+  },
+  {
     path: 'home',
     loadComponent: () => import('./components/layout/layout.component'),
     children: [

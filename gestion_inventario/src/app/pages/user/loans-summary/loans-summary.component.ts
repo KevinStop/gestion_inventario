@@ -32,6 +32,7 @@ export default class LoansSummaryComponent implements OnInit {
   ) {
     this.formGroup = this.fb.group({
       typeRequest: ['', Validators.required],
+      responsible: ['', Validators.required],
       returnDate: ['', [Validators.required, this.dateValidator]],
       comprobante: ['', Validators.required],
       description: [''],

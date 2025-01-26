@@ -29,6 +29,7 @@ const createRequest = async (data, requestDetails) => {
           description: data.description || null,
           fileUrl: data.fileUrl || null,
           returnDate: data.returnDate,
+          responsible: data.responsible,
           requestDetails: {
             create: requestDetails.map((detail) => ({
               component: { connect: { id: detail.componentId } },
@@ -59,15 +60,15 @@ const getFilteredRequests = async (filters = {}) => {
 
     const requests = await prisma.request.findMany({
       where: {
-        ...(userId && { userId }), // Filtrar por usuario, si se proporciona
-        ...(status && { status }), // Filtrar por estado, si se proporciona
-        ...(isActive !== undefined && { isActive }), // Filtrar por actividad, si se proporciona
+        ...(userId && { userId }), 
+        ...(status && { status }), 
+        ...(isActive !== undefined && { isActive }), 
       },
       include: {
-        user: true, // Incluye los datos del usuario
+        user: true, 
         requestDetails: {
           include: {
-            component: true, // Incluye los detalles de los componentes solicitados
+            component: true, 
           },
         },
       },

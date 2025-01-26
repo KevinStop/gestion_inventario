@@ -5,7 +5,7 @@ const EmailService = require("../src/mailer/emailService");
 
 // Crear una solicitud con verificación de disponibilidad
 const createRequest = async (req, res) => {
-  let { userId, requestDetails, description, typeRequest, returnDate } =
+  let { userId, requestDetails, description, typeRequest, returnDate, responsible } =
     req.body;
 
   if (
@@ -39,6 +39,7 @@ const createRequest = async (req, res) => {
       description: description || null,
       typeRequest,
       returnDate: returnDate ? new Date(returnDate) : null,
+      responsible: responsible,
       fileUrl: req.file ? `/uploads/comprobantes/${req.file.filename}` : null,
     };
 

@@ -91,4 +91,18 @@ export class UserService {
     return this.http.put<any>(`${this.apiUrl}/${userId}`, formData, { withCredentials: true });
   }
 
+  // Método para obtener todos los usuarios con rol 'user'
+  getAllUsers(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/all`, { withCredentials: true });
+  }
+
+  // Método para filtrar usuarios por nombre
+  filterUsersByName(users: any[], searchTerm: string): any[] {
+    if (!searchTerm) return users;
+    searchTerm = searchTerm.toLowerCase();
+    return users.filter(user =>
+      user.name.toLowerCase().includes(searchTerm)
+    );
+  }
+
 }

@@ -33,7 +33,7 @@ export default class UserProfileComponent implements OnInit {
     this.userService.getUserDetails().subscribe({
       next: (data) => {
         this.user = {
-          userId: data.id || data.userId, // Asegúrate de capturar el ID del usuario
+          userId: data.id || data.userId, 
           name: data.name || 'No disponible',
           email: data.email || 'No disponible',
           imageUrl: data.imageUrl || 'http://localhost:3000/assets/default-user.png',

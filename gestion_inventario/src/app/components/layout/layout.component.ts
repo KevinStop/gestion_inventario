@@ -18,45 +18,39 @@ export default class LayoutComponent implements OnInit {
 
   ngOnInit(): void {
     initFlowbite();
-
-    // Establecer tema claro por defecto si no hay preferencia guardada
+  
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+  
+    // Establecer tema claro por defecto si no existe en localStorage
     if (!localStorage.getItem('color-theme')) {
       localStorage.setItem('color-theme', 'light');
     }
-
-    // Aplicar tema según la configuración
-    if (localStorage.getItem('color-theme') === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
-
-    // Configurar los iconos
-    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-
+  
+    // Aplicar el tema almacenado
     if (localStorage.getItem('color-theme') === 'dark') {
-      themeToggleLightIcon!.classList.remove('hidden');
+      document.documentElement.classList.add('dark');
+      themeToggleDarkIcon?.classList.remove('hidden');
+      themeToggleLightIcon?.classList.add('hidden');
     } else {
-      themeToggleDarkIcon!.classList.remove('hidden');
+      document.documentElement.classList.remove('dark');
+      themeToggleLightIcon?.classList.remove('hidden');
+      themeToggleDarkIcon?.classList.add('hidden');
     }
-
-    const themeToggleBtn = document.getElementById('theme-toggle');
-
-    themeToggleBtn!.addEventListener('click', () => {
-      // Toggle icons inside button
-      themeToggleDarkIcon!.classList.toggle('hidden');
-      themeToggleLightIcon!.classList.toggle('hidden');
-
-      // Cambiar tema
-      if (localStorage.getItem('color-theme') === 'light') {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('color-theme', 'dark');
-      } else {
+  
+    themeToggleBtn?.addEventListener('click', () => {
+      themeToggleDarkIcon?.classList.toggle('hidden');
+      themeToggleLightIcon?.classList.toggle('hidden');
+  
+      if (localStorage.getItem('color-theme') === 'dark') {
         document.documentElement.classList.remove('dark');
         localStorage.setItem('color-theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        localStorage.setItem('color-theme', 'dark');
       }
     });
-  }
+  }  
 
 }

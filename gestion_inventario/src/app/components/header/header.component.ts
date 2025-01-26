@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { UserService } from '../../services/user.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-header',
@@ -15,7 +16,9 @@ export class HeaderComponent implements OnInit, OnDestroy {
   sessionExpiringMessage: boolean = false; // Estado para mostrar el mensaje
   expirationTimeout: any; // Timeout para verificar la expiración
 
-  constructor(private userService: UserService) {}
+  constructor(private userService: UserService,
+              private route: Router
+  ) {}
 
   ngOnInit(): void {
     // Comprobar si la sesión está por expirar
@@ -59,6 +62,10 @@ export class HeaderComponent implements OnInit, OnDestroy {
   logout(): void {
     this.userService.logout();
     this.sessionExpiringMessage = false;
+  }
+
+  goToModuleSelection(): void {
+    this.route.navigate(['/moduleSelection']);
   }
 
   // Reiniciar la verificación de expiración
