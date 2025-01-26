@@ -6,7 +6,6 @@ const createRequestDetail = async (req, res) => {
   try {
     const { requestId, componentId, quantity } = req.body;
 
-    // Crear el detalle de solicitud
     const newRequestDetail = await requestDetailModel.createRequestDetail({
       requestId,
       componentId,
@@ -49,10 +48,8 @@ const updateRequestDetail = async (req, res) => {
     const { id } = req.params;
     const { quantity } = req.body;
 
-    // Actualizar el detalle de solicitud
     const updatedRequestDetail = await requestDetailModel.updateRequestDetail(id, { quantity });
 
-    // Si la solicitud ha sido aceptada, actualizar la cantidad del componente
     if (updatedRequestDetail.status === 'aceptada') {
       await componentModel.updateComponentQuantity(updatedRequestDetail.componentId, -quantity);
     }
@@ -69,7 +66,6 @@ const deleteRequestDetail = async (req, res) => {
     const { id } = req.params;
     const deletedRequestDetail = await requestDetailModel.deleteRequestDetail(id);
 
-    // Reponer la cantidad del componente si la solicitud es rechazada o cancelada
     const requestDetail = await requestDetailModel.getRequestDetailById(id);
     await componentModel.updateComponentQuantity(requestDetail.componentId, requestDetail.quantity);
 

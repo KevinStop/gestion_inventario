@@ -20,7 +20,6 @@ const createComponentWithMovement = async (req, res) => {
       });
     }
 
-    // Llamar al método transaccional
     const result = await componentModel.createComponentWithMovement(data);
 
     res.status(201).json(result);
@@ -33,25 +32,19 @@ const createComponentWithMovement = async (req, res) => {
 // Obtener todos los componentes con filtro por estado
 const getAllComponents = async (req, res) => {
   const { name, status, includeAvailable, categoryId } = req.query;
-  const shouldIncludeAvailable = includeAvailable !== 'false'; // Por defecto true
+  const shouldIncludeAvailable = includeAvailable !== 'false';
 
   try {
     let components;
     
-    // Buscar por nombre si se proporciona
     if (name) {
       components = await componentModel.searchComponentsByName(name);
-    } 
-    // Filtrar por categoría si se proporciona
-    else if (categoryId) {
+    } else if (categoryId) {
       components = await componentModel.filterComponentsByCategories(categoryId);
-    } 
-    // Obtener todos con disponibilidad
-    else {
+    } else {
       components = await componentModel.getAllComponents(status, shouldIncludeAvailable);
     }
 
-    // Procesar los resultados según el rol del usuario
     if (req.user?.role === 'user') {
       components = components
         .filter(comp => comp.isActive && comp.availableQuantity > 0)
@@ -61,12 +54,11 @@ const getAllComponents = async (req, res) => {
           description: comp.description,
           imageUrl: comp.imageUrl,
           category: comp.category,
-          quantity: comp.availableQuantity,
-          availableQuantity: comp.availableQuantity,
+          quantity: comp.quantity,
+          availableQuantity: comp.quantity - (comp.inRequests || 0) - (comp.notReturnedQuantity || 0),
           categoryId: comp.categoryId
         }));
     } else {
-      // Para administradores, incluir información adicional
       components = components.map(comp => ({
         ...comp,
         availabilityDetails: {
@@ -141,13 +133,11 @@ const updateComponent = async (req, res) => {
 const deleteComponent = async (req, res) => {
   const { id } = req.params;
   try {
-    // Obtener el componente
     const component = await componentModel.getComponentById(id);
     if (!component) {
       return res.status(404).json({ error: 'Componente no encontrado' });
     }
 
-    // Verificar si hay préstamos activos
     const activeLoans = await loanHistoryService.getCurrentLoans();
     const hasActiveLoans = activeLoans.some(loan => loan.componentId === parseInt(id));
 
@@ -157,7 +147,6 @@ const deleteComponent = async (req, res) => {
       });
     }
 
-    // Eliminar la imagen si existe
     if (component.imageUrl) {
       const imagePath = path.join(__dirname, '../uploads/componentes', path.basename(component.imageUrl));
       if (fs.existsSync(imagePath)) {
@@ -165,7 +154,6 @@ const deleteComponent = async (req, res) => {
       }
     }
 
-    // Llamar al método del modelo que maneja la eliminación en cascada
     const deletedComponent = await componentModel.deleteComponent(id);
     res.status(200).json({
       message: 'Componente y registros relacionados eliminados exitosamente',
@@ -184,7 +172,6 @@ const filterComponentsByCategories = async (req, res) => {
       return res.status(400).json({ error: 'Se deben proporcionar IDs de categorías' });
     }
     const components = await componentModel.filterComponentsByCategories(categoryIds);
-    // Envolver los componentes en un objeto con la propiedad 'components'
     res.status(200).json({ components });
   } catch (error) {
     console.error('Error al filtrar los componentes:', error);

@@ -10,7 +10,6 @@ const createRequest = async (data, requestDetails) => {
   }
 
   try {
-    // Verificar disponibilidad de todos los componentes solicitados
     await Promise.all(
       requestDetails.map(async (detail) => {
         await componentModel.calculateAvailableQuantity(
@@ -145,7 +144,6 @@ const acceptRequest = async (requestId) => {
 
         // Crear todos los registros en paralelo
         await Promise.all([
-          // Actualizar estado de la solicitud
           tx.request.update({
             where: { requestId },
             data: { status: "prestamo" },
@@ -183,9 +181,9 @@ const acceptRequest = async (requestId) => {
         });
       },
       {
-        timeout: 10000, // Aumentamos el timeout a 10 segundos
+        timeout: 10000, 
       }
-    ); // Agregamos la opción de timeout
+    ); 
   } catch (error) {
     console.error("Error en acceptRequest:", error.message);
     throw new Error("Error al aceptar la solicitud: " + error.message);
@@ -282,7 +280,6 @@ const deleteRequest = async (requestId, userId, role) => {
 const finalizeRequest = async (requestId, adminNotes = null) => {
   try {
     const result = await prisma.$transaction(async (tx) => {
-      // Verificar si la solicitud existe
       const existingRequest = await tx.request.findUnique({
         where: { requestId },
       });
@@ -295,45 +292,62 @@ const finalizeRequest = async (requestId, adminNotes = null) => {
         throw new Error("La solicitud ya está finalizada.");
       }
 
-      // Validar la transición de estado
+      if (existingRequest.status === "no_devuelto") {
+        // Solo actualizar isActive y adminNotes si está en no_devuelto
+        const updatedRequest = await tx.request.update({
+          where: { requestId },
+          data: {
+            isActive: false,
+            adminNotes: adminNotes || "Finalizado desde estado no devuelto",
+          },
+        });
+
+        const activePeriod = await tx.academicPeriod.findFirst({
+          where: { isActive: true },
+        });
+
+        if (!activePeriod) {
+          throw new Error("No hay un periodo académico activo.");
+        }
+
+        const requestPeriod = await tx.requestPeriod.create({
+          data: {
+            requestId: updatedRequest.requestId,
+            academicPeriodId: activePeriod.id,
+            typeDate: "fin",
+            requestPeriodDate: new Date(),
+          },
+        });
+
+        return { updatedRequest, requestPeriod };
+      }
+
+      // Proceder con la lógica normal para otros estados
       validateStatusTransition(existingRequest.status, "finalizado");
 
-      // Obtener el periodo académico activo
       const activePeriod = await tx.academicPeriod.findFirst({
         where: { isActive: true },
       });
 
       if (!activePeriod) {
-        throw new Error(
-          "No hay un periodo académico activo. No se puede finalizar la solicitud."
-        );
+        throw new Error("No hay un periodo académico activo.");
       }
 
-      const wasNotReturned = existingRequest.status === "no_devuelto";
-      const finalStatusNote = wasNotReturned
-        ? "Finalizado desde estado no devuelto"
-        : "Finalizado normalmente";
-
-      // Actualizar la solicitud
       const updatedRequest = await tx.request.update({
         where: { requestId },
         data: {
           status: "finalizado",
           isActive: false,
-          adminNotes: adminNotes || finalStatusNote,
+          adminNotes: adminNotes || "Finalizado normalmente",
         },
       });
 
-      // Actualizar LoanHistory con la información de finalización
       await loanHistoryService.updateLoanStatus(requestId, "devuelto", {
-        wasReturned: !wasNotReturned,
-        finalStatus: wasNotReturned
-          ? "finalizado_no_devuelto"
-          : "finalizado_normal",
-        notes: adminNotes || finalStatusNote,
+        wasReturned: true,
+        finalStatus: "finalizado_normal",
+        notes: adminNotes || "Finalizado normalmente",
       });
 
-      // Crear un nuevo registro en requestPeriod
       const requestPeriod = await tx.requestPeriod.create({
         data: {
           requestId: updatedRequest.requestId,
@@ -353,37 +367,72 @@ const finalizeRequest = async (requestId, adminNotes = null) => {
   }
 };
 
+// Modelo
 const updateReturnDate = async (requestId, userId, role, newReturnDate) => {
   try {
-    // Verificar permisos y obtener la solicitud
-    const request = await checkRequestPermissions(requestId, userId, role);
+    return await prisma.$transaction(async (tx) => {
+      const request = await checkRequestPermissions(requestId, userId, role);
 
-    if (request.status !== "prestamo") {
-      throw new Error(
-        'Solo se puede actualizar la fecha de retorno para solicitudes en estado "prestamo".'
-      );
-    }
+      if (request.status !== "prestamo") {
+        throw new Error('Solo se puede actualizar la fecha de retorno para solicitudes en estado "prestamo".');
+      }
 
-    if (request.returnDate) {
-      throw new Error(
-        "La fecha de retorno ya ha sido modificada y no puede actualizarse nuevamente."
-      );
-    }
+      // Obtener el historial de préstamo activo
+      const loanHistory = await tx.loanHistory.findFirst({
+        where: {
+          requestId,
+          endDate: null,
+        },
+      });
 
-    // Actualizar la fecha de retorno
-    const updatedRequest = await prisma.request.update({
-      where: { requestId },
-      data: {
-        returnDate: new Date(newReturnDate),
-      },
+      if (!loanHistory) {
+        throw new Error("No se encontró un préstamo activo para esta solicitud.");
+      }
+
+      // Verificar si ya se actualizó la fecha usando los períodos de solicitud
+      const existingUpdatePeriod = await tx.requestPeriod.findFirst({
+        where: {
+          requestId,
+          typeDate: "actualizacion_retorno"
+        }
+      });
+
+      if (existingUpdatePeriod) {
+        throw new Error("La fecha de retorno ya ha sido modificada anteriormente.");
+      }
+
+      // Obtener período académico activo
+      const activePeriod = await tx.academicPeriod.findFirst({
+        where: { isActive: true }
+      });
+
+      if (!activePeriod) {
+        throw new Error("No hay un periodo académico activo.");
+      }
+
+      // Actualizar la fecha de retorno
+      const updatedRequest = await tx.request.update({
+        where: { requestId },
+        data: {
+          returnDate: new Date(newReturnDate),
+        },
+      });
+
+      // Registrar el período de actualización
+      await tx.requestPeriod.create({
+        data: {
+          requestId,
+          academicPeriodId: activePeriod.id,
+          typeDate: "actualizacion_retorno",
+          requestPeriodDate: new Date()
+        }
+      });
+
+      return updatedRequest;
     });
-
-    return updatedRequest;
   } catch (error) {
     console.error("Error en updateReturnDate:", error.message);
-    throw new Error(
-      "Error al actualizar la fecha de retorno: " + error.message
-    );
+    throw new Error("Error al actualizar la fecha de retorno: " + error.message);
   }
 };
 

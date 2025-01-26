@@ -20,7 +20,6 @@ const createRequest = async (req, res) => {
   }
 
   try {
-    // Verificar disponibilidad de todos los componentes
     for (const detail of requestDetails) {
       try {
         await componentModel.calculateAvailableQuantity(
@@ -55,17 +54,14 @@ const createRequest = async (req, res) => {
 // Obtener todas las solicitudes activas
 const getFilteredRequests = async (req, res) => {
   try {
-    // Leer filtros desde la consulta
     const { userId, status, isActive } = req.query;
 
-    // Convertir a tipos adecuados (userId e isActive)
     const filters = {
       userId: userId ? parseInt(userId) : undefined,
       status: status || undefined,
       isActive: isActive !== undefined ? isActive === "true" : undefined,
     };
 
-    // Llamar al modelo con los filtros
     const requests = await requestModel.getFilteredRequests(filters);
 
     return res.status(200).json(requests);
@@ -84,7 +80,7 @@ const getRequestById = async (req, res) => {
     if (!request) {
       return res.status(404).json({ error: "Solicitud no encontrada" });
     }
-    return res.status(200).json(request); // Responde con la solicitud completa incluyendo detalles del componente
+    return res.status(200).json(request); 
   } catch (error) {
     console.error("Error en getRequestById del controlador:", error.message);
     return res.status(500).json({ error: error.message });
@@ -101,14 +97,12 @@ const acceptRequest = async (req, res) => {
   }
 
   try {
-    // Obtener la solicitud con sus detalles
     const request = await requestModel.getRequestById(requestId);
 
     if (!request) {
       return res.status(404).json({ error: "Solicitud no encontrada" });
     }
 
-    // Verificar disponibilidad actual de todos los componentes
     for (const detail of request.requestDetails) {
       try {
         await componentModel.checkComponentAvailability(
@@ -123,7 +117,6 @@ const acceptRequest = async (req, res) => {
       }
     }
 
-    // Aceptar la solicitud (la creación de LoanHistory ya está incluida en acceptRequest)
     const updatedRequest = await requestModel.acceptRequest(requestId);
     await EmailService.sendRequestApprovalNotification(
       updatedRequest.requestId
@@ -153,7 +146,6 @@ const deleteRequest = async (req, res) => {
   }
 
   try {
-    // Verificar si hay préstamos activos antes de eliminar
     const activeLoans = await loanHistoryService.getCurrentLoans();
     const hasActiveLoans = activeLoans.some(
       (loan) => loan.requestId === requestId
@@ -207,7 +199,6 @@ const rejectRequest = async (req, res) => {
       rejectionNotes
     );
 
-    // Enviar correo de notificación
     await EmailService.sendRequestRejectionNotification(requestId);
 
     return res.status(200).json({
@@ -280,23 +271,19 @@ const handleRequestAction = async (req, res, action, actionDescription) => {
 };
 
 const updateReturnDate = async (req, res) => {
-  const { id } = req.params; // ID de la solicitud
-  const { newReturnDate } = req.body; // Nueva fecha proporcionada por el usuario
+  const { id } = req.params;
+  const { newReturnDate } = req.body;
 
   if (!newReturnDate) {
-    return res
-      .status(400)
-      .json({ error: "La nueva fecha de retorno es obligatoria." });
+    return res.status(400).json({ error: "La nueva fecha de retorno es obligatoria." });
   }
 
   const requestId = parseInt(id);
-  const userId = req.user?.userId; // ID del usuario autenticado
-  const role = req.user?.role; // Rol del usuario autenticado
+  const userId = req.user?.userId;
+  const role = req.user?.role;
 
   if (isNaN(requestId)) {
-    return res
-      .status(400)
-      .json({ error: "El ID de la solicitud debe ser un número válido." });
+    return res.status(400).json({ error: "El ID de la solicitud debe ser un número válido." });
   }
 
   try {
@@ -313,15 +300,9 @@ const updateReturnDate = async (req, res) => {
     });
   } catch (error) {
     console.error("Error en updateReturnDate:", error.message);
-    if (error.message.includes("ya ha sido modificada")) {
-      return res
-        .status(403)
-        .json({
-          error:
-            "La fecha de retorno ya ha sido modificada y no puede actualizarse nuevamente.",
-        });
-    }
-    return res.status(403).json({ error: error.message });
+    return res.status(400).json({ 
+      error: error.message.replace("Error al actualizar la fecha de retorno: ", "")
+    });
   }
 };
 

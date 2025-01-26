@@ -3,12 +3,11 @@ const { isTokenBlacklisted } = require('./blacklistedTokens');
 
 // Middleware de autenticación
 const authenticateToken = (req, res, next) => {
-  const token = req.cookies?.authToken; // Leer token desde la cookie
+  const token = req.cookies?.authToken;
   if (!token) {
     return res.status(401).json({ message: 'Token no proporcionado' });
   }
 
-  // Verificar si el token está en la lista negra
   if (isTokenBlacklisted(token)) {
     return res.status(403).json({ message: 'Token inválido o revocado' });
   }
@@ -22,12 +21,11 @@ const authenticateToken = (req, res, next) => {
   }
 };
 
-// Middleware de autorización basado en roles
 const authorizeRoles = (allowedRoles) => (req, res, next) => {
   if (!allowedRoles.includes(req.user?.role)) {
     return res.status(403).json({ message: 'No tienes permisos suficientes para realizar esta acción' });
   }
-  next(); // Continuar si el rol está autorizado
+  next();
 };
 
 module.exports = { authenticateToken, authorizeRoles };

@@ -10,7 +10,6 @@ const createComponentMovement = async (req, res) => {
       return res.status(400).json({ error: 'El tipo de movimiento debe ser "ingreso" o "egreso"' });
     }
 
-    // Verificar préstamos activos si es un egreso
     if (data.movementType === 'egreso' && data.requestId) {
       const activeLoans = await loanHistoryService.getCurrentLoans();
       const hasActiveLoan = activeLoans.some(
@@ -27,7 +26,6 @@ const createComponentMovement = async (req, res) => {
 
     const componentMovement = await componentMovementModel.createComponentMovement(data);
 
-    // Retornar una respuesta más detallada
     res.status(201).json({
       message: `Movimiento de ${data.movementType} registrado exitosamente`,
       componentMovement
@@ -58,12 +56,11 @@ const getComponentMovements = async (req, res) => {
       movementType,
       startDate,
       endDate,
-      requestId // Añadido para filtrar por solicitud
+      requestId 
     };
 
     const movements = await componentMovementModel.getComponentMovements(filters);
 
-    // Incluir información de préstamos si existe requestId
     if (requestId) {
       const loanInfo = await loanHistoryService.getLoansByRequest(requestId);
       res.status(200).json({ 

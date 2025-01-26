@@ -19,7 +19,7 @@ export default class RequestDetailsComponent implements OnInit {
     private route: ActivatedRoute,
     private requestService: RequestService,
     private router: Router,
-    private sweetalertService: SweetalertService // Inyectamos el servicio de alertas
+    private sweetalertService: SweetalertService
   ) {}
 
   ngOnInit(): void {

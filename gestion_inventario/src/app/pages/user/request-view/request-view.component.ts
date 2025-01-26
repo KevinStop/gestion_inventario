@@ -128,25 +128,21 @@ export default class RequestViewComponent implements OnInit {
       this.sweetalertService.error('Debe seleccionar una solicitud y una fecha válida.');
       return;
     }
-
-    this.requestInProgress = true; 
-
-    this.requestService.updateReturnDate(this.selectedRequest.requestId, this.selectedDate).subscribe(
-      (response) => {
+  
+    this.requestInProgress = true;
+  
+    this.requestService.updateReturnDate(this.selectedRequest.requestId, this.selectedDate).subscribe({
+      next: (response) => {
         this.sweetalertService.success('Fecha de retorno actualizada con éxito.');
-        this.closeModal(); 
-        this.loadRequests(); 
+        this.closeModal();
+        this.loadRequests();
         this.requestInProgress = false;
       },
-      (error) => {
-        if (error.status === 403) {
-          this.sweetalertService.error('La fecha de retorno ya fue actualizada anteriormente.');
-        } else {
-          this.sweetalertService.error('Ocurrió un error al actualizar la fecha de retorno.');
-        }
+      error: (error) => {
+        this.sweetalertService.error(error.error.error || 'Ocurrió un error al actualizar la fecha de retorno.');
         this.requestInProgress = false;
       }
-    );
+    });
   }
 
   goToDetails(requestId: number): void {

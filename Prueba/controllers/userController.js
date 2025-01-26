@@ -10,12 +10,10 @@ const registerUser = async (req, res) => {
   try {
     const data = req.body;
 
-    // Si se sube un archivo, asignar la ruta
     if (req.file) {
       data.imageUrl = `/uploads/users/${req.file.filename}`;
     }
 
-    // Ya no necesitamos combinar nombre y apellido
     const user = await userModel.createUser(data);
 
     res.status(201).json({
@@ -33,10 +31,8 @@ const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    // Verificar las credenciales del usuario
     const user = await userModel.verifyUserCredentials(email, password);
 
-    // Generar el token y configurar la cookie
     const token = generateToken({
       userId: user.userId,
       email: user.email,
@@ -55,7 +51,6 @@ const updateUser = async (req, res) => {
   const { id } = req.params;
   const data = req.body;
 
-  // Validar que sea el propio usuario o un admin
   if (req.user.userId !== Number(id) && req.user.role !== "admin") {
     return res
       .status(403)
@@ -63,7 +58,6 @@ const updateUser = async (req, res) => {
   }
 
   try {
-    // Si se sube una imagen, asignar la nueva ruta al campo `newImageUrl`
     if (req.file) {
       data.newImageUrl = `/uploads/users/${req.file.filename}`;
     }
@@ -83,7 +77,6 @@ const updateUser = async (req, res) => {
 const deactivateUser = async (req, res) => {
   const { id } = req.params;
 
-  // Validar que sea el propio usuario o un admin
   if (req.user.userId !== Number(id) && req.user.role !== "admin") {
     return res
       .status(403)
@@ -117,8 +110,8 @@ const logoutUser = (req, res) => {
       .json({ message: "No se proporcionó un token para cerrar sesión" });
   }
 
-  blacklistToken(token); // Agregar token a la lista negra
-  res.clearCookie("authToken"); // Eliminar la cookie
+  blacklistToken(token); 
+  res.clearCookie("authToken"); 
   res.status(200).json({ message: "Sesión cerrada correctamente" });
 };
 
@@ -129,10 +122,8 @@ const extendSession = (req, res) => {
       return res.status(401).json({ message: "Token no proporcionado" });
     }
 
-    // Verificar el token actual
     const user = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Generar un nuevo token y actualizar la cookie
     const newToken = generateToken({
       userId: user.userId,
       email: user.email,
@@ -149,9 +140,8 @@ const extendSession = (req, res) => {
 
 const getAuthenticatedUser = async (req, res) => {
   try {
-    const { userId } = req.user; // `req.user` es llenado por el middleware `authenticateToken`
+    const { userId } = req.user; 
 
-    // Obtener los datos del usuario desde el modelo
     const user = await userModel.getUserById(userId);
 
     res.status(200).json(user);
@@ -172,15 +162,14 @@ const getSessionTime = (req, res) => {
       return res.status(401).json({ message: "Token no proporcionado." });
     }
 
-    // Decodificar el token sin verificar la firma
     const decodedToken = jwt.decode(token);
 
     if (!decodedToken || !decodedToken.exp) {
       return res.status(400).json({ message: "Token inválido." });
     }
 
-    const currentTime = Math.floor(Date.now() / 1000); // Tiempo actual en segundos
-    const remainingTime = (decodedToken.exp - currentTime) * 1000; // Convertir a milisegundos
+    const currentTime = Math.floor(Date.now() / 1000); 
+    const remainingTime = (decodedToken.exp - currentTime) * 1000; 
 
     if (remainingTime <= 0) {
       return res.status(401).json({ message: "La sesión ha expirado." });

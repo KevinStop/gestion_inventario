@@ -71,7 +71,7 @@ const getAllComponents = async (status, includeAvailable = true) => {
     if (status) {
       whereCondition.isActive = status === 'activo';
     }
-
+ 
     let components = await prisma.component.findMany({
       where: whereCondition,
       include: {
@@ -79,39 +79,37 @@ const getAllComponents = async (status, includeAvailable = true) => {
         requestDetails: {
           where: {
             request: {
-              status: 'prestamo',
-              isActive: true
+              OR: [
+                { status: 'prestamo', isActive: true },
+                { status: 'no_devuelto' }
+              ]
             }
           },
           include: {
             request: true
           }
-        },
-        loanHistories: {
-          where: {
-            status: 'no_devuelto'
-          }
         }
       }
     });
-
+ 
     if (includeAvailable) {
       components = await Promise.all(components.map(async (component) => {
         const availability = await calculateAvailableQuantity(component.id);
         return {
           ...component,
           ...availability,
-          loanedQuantity: component.quantity - availability.availableQuantity
+          loanedQuantity: component.quantity - availability.availableQuantity,
+          notReturnedQuantity: availability.notReturnedQuantity
         };
       }));
     }
-
+ 
     return components;
   } catch (error) {
     console.error('Error al obtener componentes:', error);
     throw new Error('Error al obtener los componentes');
   }
-};
+ };
 
 // Obtener un componente por su ID y su categoría
 const getComponentById = async (id) => {
@@ -265,16 +263,23 @@ const getComponentCount = async () => {
 // Función auxiliar para calcular la cantidad disponible de un componente
 const calculateAvailableQuantity = async (componentId) => {
   try {
-    // 1. Obtener el componente con sus relaciones
     const component = await prisma.component.findUnique({
       where: { id: componentId },
       include: {
-        // Solo incluimos requestDetails ya que es lo que usaremos para el cálculo
         requestDetails: {
           where: {
             request: {
-              status: 'prestamo',
-              isActive: true
+              OR: [
+                { 
+                  AND: [
+                    { status: 'prestamo' },
+                    { isActive: true }
+                  ]
+                },
+                { 
+                  status: 'no_devuelto'
+                }
+              ]
             }
           },
           include: {
@@ -288,26 +293,46 @@ const calculateAvailableQuantity = async (componentId) => {
       throw new Error('Componente no encontrado');
     }
 
-    // 2. Calcular cantidad en préstamo desde requestDetails
-    const totalInRequests = component.requestDetails.reduce((sum, detail) => {
-      if (detail.request.status === 'prestamo') {
-        return sum + detail.quantity;
-      }
-      return sum;
-    }, 0);
+    const notReturnedQuantity = component.requestDetails
+      .filter(detail => detail.request.status === 'no_devuelto')
+      .reduce((sum, detail) => sum + detail.quantity, 0);
 
-    // 3. Calcular cantidad disponible
-    const availableQuantity = Math.max(0, component.quantity - totalInRequests);
+    const loanedQuantity = component.requestDetails
+      .filter(detail => detail.request.status === 'prestamo')
+      .reduce((sum, detail) => sum + detail.quantity, 0);
+
+    const availableQuantity = Math.max(0, component.quantity - notReturnedQuantity - loanedQuantity);
 
     return {
       totalQuantity: component.quantity,
-      availableQuantity: availableQuantity,
-      inRequests: totalInRequests
+      availableQuantity,
+      inRequests: loanedQuantity,
+      notReturnedQuantity
     };
   } catch (error) {
     console.error('Error calculando cantidad disponible:', error);
     throw new Error('Error al calcular cantidad disponible');
   }
+};
+
+const checkComponentAvailability = async (componentId, requestedQuantity) => {
+  const availability = await calculateAvailableQuantity(componentId);
+  
+  if (requestedQuantity > availability.availableQuantity) {
+    const component = await prisma.component.findUnique({
+      where: { id: componentId },
+      select: { name: true }
+    });
+    
+    throw new Error(
+      `No hay suficiente cantidad disponible del componente ${component.name}. ` +
+      `Disponible: ${availability.availableQuantity}, ` +
+      `En préstamo: ${availability.inRequests}, ` +
+      `No devueltos: ${availability.notReturnedQuantity}`
+    );
+  }
+  
+  return true;
 };
 
 module.exports = {
@@ -319,5 +344,6 @@ module.exports = {
   searchComponentsByName,
   filterComponentsByCategories,
   getComponentCount,
-  calculateAvailableQuantity
+  calculateAvailableQuantity,
+  checkComponentAvailability
 };

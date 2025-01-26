@@ -6,12 +6,10 @@ const createAcademicPeriod = async (req, res) => {
   try {
     const data = req.body;
 
-    // Validar que los datos requeridos estén presentes
     if (!data.name || !data.startDate || !data.endDate) {
       return res.status(400).json({ error: 'Todos los campos (name, startDate, endDate) son obligatorios' });
     }
 
-    // Crear el periodo académico
     const academicPeriod = await academicPeriodModel.createAcademicPeriod(data);
     res.status(201).json(academicPeriod);
   } catch (error) {
@@ -55,7 +53,6 @@ const updateAcademicPeriod = async (req, res) => {
     const { id } = req.params;
     const data = req.body;
 
-    // Validar que los datos requeridos estén presentes
     if (!data.name || !data.startDate || !data.endDate) {
       return res.status(400).json({ error: 'Todos los campos (name, startDate, endDate) son obligatorios' });
     }
@@ -96,7 +93,6 @@ const deleteAcademicPeriod = async (req, res) => {
       return res.status(400).json({ error: 'El ID del periodo académico es obligatorio' });
     }
  
-    // La lógica de verificación está ahora en el servicio
     const updatedPeriod = await academicPeriodModel.setActiveAcademicPeriod(id);
     
     res.status(200).json({

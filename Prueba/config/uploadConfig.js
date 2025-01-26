@@ -4,7 +4,6 @@ const path = require('path');
 // Configuración del almacenamiento dinámico
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    // Definir la carpeta destino en función del tipo de archivo
     let folder;
     if (req.baseUrl.includes('/users')) {
       folder = 'users';
