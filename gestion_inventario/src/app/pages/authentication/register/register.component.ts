@@ -35,45 +35,6 @@ export default class RegisterComponent implements OnInit {
 
   ngOnInit(): void {
     initFlowbite();
-
-    // Establecer tema claro por defecto si no hay preferencia guardada
-    if (!localStorage.getItem('color-theme')) {
-      localStorage.setItem('color-theme', 'light');
-    }
-
-    // Aplicar tema según la configuración
-    if (localStorage.getItem('color-theme') === 'light') {
-      document.documentElement.classList.add('light');
-    } else {
-      document.documentElement.classList.remove('light');
-    }
-
-    // Configurar los iconos
-    const themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
-    const themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
-
-    if (localStorage.getItem('color-theme') === 'dark') {
-      themeToggleLightIcon!.classList.remove('hidden');
-    } else {
-      themeToggleDarkIcon!.classList.remove('hidden');
-    }
-
-    const themeToggleBtn = document.getElementById('theme-toggle');
-
-    themeToggleBtn!.addEventListener('click', () => {
-      // Toggle icons inside button
-      themeToggleDarkIcon!.classList.toggle('hidden');
-      themeToggleLightIcon!.classList.toggle('hidden');
-
-      // Cambiar tema
-      if (localStorage.getItem('color-theme') === 'light') {
-        document.documentElement.classList.add('dark');
-        localStorage.setItem('color-theme', 'dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-        localStorage.setItem('color-theme', 'light');
-      }
-    });
   }
 
   validateForm(): boolean {
@@ -98,12 +59,18 @@ export default class RegisterComponent implements OnInit {
     }
 
     // Validar email
-    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    //const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@espe\.edu\.ec$/;
+    const hasTwoConsecutiveDots = /\.{2,}/.test(this.userData.email);
+
     if (!this.userData.email.trim()) {
       this.formErrors.email = 'El correo electrónico es requerido';
       isValid = false;
+    } else if (hasTwoConsecutiveDots) {
+      this.formErrors.email = 'El correo no puede contener puntos consecutivos';
+      isValid = false;
     } else if (!emailRegex.test(this.userData.email)) {
-      this.formErrors.email = 'Ingrese un correo electrónico válido';
+      this.formErrors.email = 'Ingrese un correo institucional válido (@espe.edu.ec)';
       isValid = false;
     }
 
@@ -122,7 +89,7 @@ export default class RegisterComponent implements OnInit {
   // Método para manejar el registro de usuario
   onSubmit(): void {
     this.showErrors = true;
-    
+
     if (!this.validateForm()) {
       this.sweetalertService.error('Por favor, complete todos los campos correctamente.');
       return;
@@ -134,7 +101,7 @@ export default class RegisterComponent implements OnInit {
       name: this.userData.name,
       lastName: this.userData.lastName
     };
-  
+
     this.userService.register(userData).subscribe({
       next: (response) => {
         this.sweetalertService.success('Registro exitoso. Por favor, inicia sesión.');

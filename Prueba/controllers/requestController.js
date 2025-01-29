@@ -2,6 +2,8 @@ const requestModel = require("../models/requestModel");
 const componentModel = require("../models/componentModel");
 const loanHistoryService = require("../models/loanModel");
 const EmailService = require("../src/mailer/emailService");
+const path = require('path');
+const fs = require('fs');
 
 // Crear una solicitud con verificación de disponibilidad
 const createRequest = async (req, res) => {
@@ -147,6 +149,12 @@ const deleteRequest = async (req, res) => {
   }
 
   try {
+    // Obtener la solicitud antes de eliminarla para acceder a su fileUrl
+    const request = await requestModel.getRequestById(requestId);
+    if (!request) {
+      return res.status(404).json({ error: "Solicitud no encontrada" });
+    }
+
     const activeLoans = await loanHistoryService.getCurrentLoans();
     const hasActiveLoans = activeLoans.some(
       (loan) => loan.requestId === requestId
@@ -158,6 +166,14 @@ const deleteRequest = async (req, res) => {
       });
     }
 
+    // Eliminar el archivo si existe
+    if (request.fileUrl) {
+      const filePath = path.join(__dirname, '../uploads/comprobantes', path.basename(request.fileUrl));
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
     const deletedRequest = await requestModel.deleteRequest(
       requestId,
       userId,
@@ -165,7 +181,7 @@ const deleteRequest = async (req, res) => {
     );
 
     return res.status(200).json({
-      message: "Solicitud y registros relacionados eliminados con éxito.",
+      message: "Solicitud, archivo y registros relacionados eliminados con éxito.",
       deletedRequest,
     });
   } catch (error) {
@@ -194,6 +210,20 @@ const rejectRequest = async (req, res) => {
   }
 
   try {
+    // Obtener la solicitud antes de rechazarla para acceder a su fileUrl
+    const request = await requestModel.getRequestById(requestId);
+    if (!request) {
+      return res.status(404).json({ error: "Solicitud no encontrada" });
+    }
+
+    // Eliminar el archivo si existe
+    if (request.fileUrl) {
+      const filePath = path.join(__dirname, '../uploads/comprobantes', path.basename(request.fileUrl));
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+    }
+
     const result = await requestModel.rejectRequest(
       requestId,
       adminId,
@@ -203,7 +233,7 @@ const rejectRequest = async (req, res) => {
     await EmailService.sendRequestRejectionNotification(requestId);
 
     return res.status(200).json({
-      message: "Solicitud rechazada exitosamente.",
+      message: "Solicitud rechazada y archivo eliminado exitosamente.",
       result,
     });
   } catch (error) {

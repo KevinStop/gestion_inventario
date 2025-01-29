@@ -13,7 +13,7 @@ const createComponentMovement = async (data) => {
 
   try {
     return await prisma.$transaction(async (tx) => {
-      // Validaciones
+      // Validaciones básicas
       const movementQuantity = parseInt(quantity);
       if (isNaN(movementQuantity) || movementQuantity <= 0) {
         throw new Error('La cantidad debe ser un número positivo');
@@ -30,6 +30,14 @@ const createComponentMovement = async (data) => {
 
       if (!component) {
         throw new Error('El componente no existe');
+      }
+
+      // Validación específica para egresos
+      if (movementType === 'egreso') {
+        const disponibleDespuesEgreso = component.quantity - movementQuantity;
+        if (disponibleDespuesEgreso < 0) {
+          throw new Error(`No hay suficientes componentes disponibles. Cantidad actual: ${component.quantity}, Cantidad solicitada: ${movementQuantity}`);
+        }
       }
       
       // Obtener el periodo académico activo

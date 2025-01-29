@@ -172,6 +172,21 @@ class EmailService {
       throw error;
     }
   }
+
+  static async sendPasswordResetEmail(email, temporalPassword) {
+    try {
+      await MailService.enviarCorreo(
+        email,
+        'Recuperación de Contraseña',
+        templates.passwordResetTemplate({
+          temporalPassword
+        })
+      );
+    } catch (error) {
+      console.error('Error sending password reset email:', error);
+      throw error;
+    }
+  }
 }
 
 module.exports = EmailService;

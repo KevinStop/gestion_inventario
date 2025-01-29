@@ -3,6 +3,7 @@ import { UserService } from '../../../services/user.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Image } from 'primeng/image';
+import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 
 @Component({
   selector: 'app-user-profile',
@@ -13,20 +14,67 @@ import { Image } from 'primeng/image';
 })
 export default class UserProfileComponent implements OnInit {
   user: any = {
-    userId: '', // Agregar el campo userId
+    userId: '',
     name: '',
     email: '',
     imageUrl: '',
   };
-  updatedData: any = { name: '', email: '', password: '' }; // Campos a actualizar
-  selectedImage: File | null = null; // Imagen seleccionada
+  updatedData: any = { name: '', email: '', password: '' };
+  selectedImage: File | null = null; 
   imagePreview: string | null = null;
-  isEditing = false; // Estado de edición
+  isEditing = false; 
 
-  constructor(private userService: UserService) {}
+  formErrors = {
+    email: '',
+    password: '',
+    name: ''
+  };
+
+  constructor(private userService: UserService, private sweetalertService: SweetalertService  ) {}
 
   ngOnInit(): void {
     this.loadUserDetails();
+  }
+
+  // Validar el formulario antes de actualizar
+  validateForm(): boolean {
+    let isValid = true;
+    this.formErrors = {
+      email: '',
+      password: '',
+      name: ''
+    };
+
+    // Validar nombre
+    if (!this.updatedData.name.trim()) {
+      this.formErrors.name = 'El nombre es requerido';
+      isValid = false;
+    }
+
+    // Validar email
+    const emailRegex = /^[a-zA-Z0-9][a-zA-Z0-9._-]*[a-zA-Z0-9]@espe\.edu\.ec$/;
+    const hasTwoConsecutiveDots = /\.{2,}/.test(this.updatedData.email);
+
+    if (!this.updatedData.email.trim()) {
+      this.formErrors.email = 'El correo electrónico es requerido';
+      isValid = false;
+    } else if (hasTwoConsecutiveDots) {
+      this.formErrors.email = 'El correo no puede contener puntos consecutivos';
+      isValid = false;
+    } else if (!emailRegex.test(this.updatedData.email)) {
+      this.formErrors.email = 'Ingrese un correo institucional válido (@espe.edu.ec)';
+      isValid = false;
+    }
+
+    // Validar contraseña solo si se ha proporcionado una
+    if (this.updatedData.password) {
+      if (this.updatedData.password.length < 6) {
+        this.formErrors.password = 'La contraseña debe tener al menos 6 caracteres';
+        isValid = false;
+      }
+    }
+
+    return isValid;
   }
 
   loadUserDetails(): void {
@@ -51,30 +99,32 @@ export default class UserProfileComponent implements OnInit {
   onImageSelected(event: any): void {
     const file = event.target.files[0];
 
-    // Validar tipo de archivo
     if (!file.type.match(/image\/(jpeg|jpg|png)/)) {
-      alert('Solo se permiten imágenes en formato JPEG, JPG o PNG.');
+      this.sweetalertService.error('Solo se permiten imágenes en formato JPEG, JPG o PNG.');
       return;
     }
 
-    // Asegurar que solo se permite un archivo
     if (event.target.files.length > 1) {
-      alert('Solo puedes seleccionar una imagen a la vez.');
+      this.sweetalertService.error('Solo puedes seleccionar una imagen a la vez.');
       return;
     }
 
     this.selectedImage = file;
 
-    // Crear un objeto de vista previa para la imagen seleccionada
     const reader = new FileReader();
     reader.onload = (e: any) => {
-      this.imagePreview = e.target.result;  // Asignar la vista previa
+      this.imagePreview = e.target.result;
     };
     reader.readAsDataURL(file);
-  }   
+  }  
 
   // Actualizar datos del usuario
   updateUser(): void {
+    if (!this.validateForm()) {
+      this.sweetalertService.error('Por favor, corrija los errores en el formulario antes de continuar.');
+      return;
+    }
+
     const formData = new FormData();
     formData.append('name', this.updatedData.name);
     formData.append('email', this.updatedData.email);
@@ -82,18 +132,18 @@ export default class UserProfileComponent implements OnInit {
       formData.append('password', this.updatedData.password);
     }
     if (this.selectedImage) {
-      formData.append('image', this.selectedImage); // Campo para la imagen
+      formData.append('image', this.selectedImage);
     }
 
     this.userService.updateUser(this.user.userId, formData).subscribe({
       next: (response) => {
-        alert('Usuario actualizado exitosamente');
-        this.loadUserDetails(); // Recargar los datos del usuario
-        this.isEditing = false; // Salir del modo de edición
+        this.sweetalertService.success('Usuario actualizado exitosamente');
+        this.loadUserDetails();
+        this.isEditing = false;
       },
-      error: (err) => {
-        console.error('Error al actualizar el usuario:', err);
-        alert('Ocurrió un error al actualizar los datos');
+      error: (error) => {
+        const errorMessage = error.error?.message || 'Ocurrió un error al actualizar los datos';
+        this.sweetalertService.error(errorMessage);
       },
     });
   }

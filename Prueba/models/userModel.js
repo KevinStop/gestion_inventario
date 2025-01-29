@@ -173,11 +173,60 @@ const getAllUsers = async () => {
   }
 };
 
+// Función para generar contraseña temporal aleatoria
+const generateTemporalPassword = () => {
+  const length = 10;
+  const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let password = "";
+  for (let i = 0; i < length; i++) {
+    const randomIndex = Math.floor(Math.random() * charset.length);
+    password += charset[randomIndex];
+  }
+  return password;
+};
+
+// Función para procesar la solicitud de recuperación de contraseña
+const requestPasswordReset = async (email) => {
+  try {
+    // Buscar el usuario por email
+    const user = await prisma.user.findUnique({
+      where: { email },
+      select: {
+        userId: true,
+        email: true,
+        name: true,
+      }
+    });
+
+    if (!user) {
+      throw new Error("No existe ningún usuario registrado con este correo electrónico");
+    }
+
+    // Generar contraseña temporal
+    const temporalPassword = generateTemporalPassword();
+    const hashedPassword = await bcrypt.hash(temporalPassword, 10);
+
+    // Actualizar la contraseña del usuario
+    await prisma.user.update({
+      where: { userId: user.userId },
+      data: { password: hashedPassword }
+    });
+
+    return {
+      user,
+      temporalPassword
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 module.exports = {
   createUser,
   updateUser,
   deactivateUser,
   verifyUserCredentials,
   getUserById,
-  getAllUsers
+  getAllUsers,
+  requestPasswordReset
 };

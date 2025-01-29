@@ -20,6 +20,11 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   {
+    path: 'forgot-password',
+    loadComponent: () => import('./pages/authentication/forgot-password/forgot-password.component'),
+    canActivate: [UnauthGuard],
+  },
+  {
     path: 'home',
     loadComponent: () => import('./components/layout/layout.component'),
     children: [

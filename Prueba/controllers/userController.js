@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const path = require("path");
 const upload = require("../config/uploadConfig");
 const userModel = require("../models/userModel");
+const EmailService = require("../src/mailer/emailService");
 const { blacklistToken } = require("../middleware/blacklistedTokens");
 const { generateToken, setTokenCookie } = require("../Utils/tokenUtils");
 
@@ -191,6 +192,32 @@ const getAllUsers = async (req, res) => {
   }
 };
 
+const requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ 
+        error: "Debe proporcionar un correo electrónico" 
+      });
+    }
+
+    const { user, temporalPassword } = await userModel.requestPasswordReset(email);
+
+    // Enviar correo con la contraseña temporal
+    await EmailService.sendPasswordResetEmail(email, temporalPassword);
+
+    res.status(200).json({
+      message: "Se ha enviado un correo con las instrucciones para recuperar su contraseña"
+    });
+
+  } catch (error) {
+    console.error("Error en requestPasswordReset:", error);
+    res.status(error.message.includes("No existe ningún usuario") ? 404 : 500)
+      .json({ error: error.message });
+  }
+};
+
 module.exports = {
   registerUser,
   loginUser,
@@ -200,5 +227,6 @@ module.exports = {
   extendSession,
   getAuthenticatedUser,
   getSessionTime,
-  getAllUsers
+  getAllUsers,
+  requestPasswordReset
 };

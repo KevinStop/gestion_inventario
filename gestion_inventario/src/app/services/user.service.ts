@@ -105,4 +105,24 @@ export class UserService {
     );
   }
 
+  requestPasswordReset(email: string): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/reset-password`, { email }, { 
+      withCredentials: true 
+    }).pipe(
+      catchError(error => {
+        // Manejar diferentes tipos de errores
+        if (error.status === 404) {
+          throw new Error('No existe ningún usuario registrado con este correo electrónico');
+        }
+        throw new Error('Error al procesar la solicitud de recuperación de contraseña');
+      })
+    );
+  }
+
+  // Método auxiliar para validar formato de email
+  validateEmail(email: string): boolean {
+    const emailRegex = /^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,6}$/;
+    return emailRegex.test(email);
+  }
+
 }

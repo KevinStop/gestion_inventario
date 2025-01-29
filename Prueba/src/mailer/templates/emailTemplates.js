@@ -91,11 +91,25 @@ const upcomingReturnTemplate = (data) => `
   </div>
 `;
 
+const passwordResetTemplate = (data) => `
+  <div style="font-family: Arial, sans-serif; padding: 20px;">
+    <h2>Recuperación de Contraseña</h2>
+    <p>Estimado/a usuario,</p>
+    <p>Se ha generado una contraseña temporal para su cuenta:</p>
+    <p style="background-color: #f0f0f0; padding: 10px; font-family: monospace; font-size: 16px;">
+      ${data.temporalPassword}
+    </p>
+    <p>Por favor, use esta contraseña temporal para iniciar sesión y cambiar su contraseña lo antes posible.</p>
+    <p><strong>Nota:</strong> Por seguridad, esta contraseña temporal tiene una validez limitada.</p>
+  </div>
+`;
+
 module.exports = {
   newRequestTemplate,
   approvedRequestTemplate,
   rejectedRequestTemplate,
   returnDateTemplate,
   adminReturnDateTemplate,
-  upcomingReturnTemplate
+  upcomingReturnTemplate,
+  passwordResetTemplate
 };

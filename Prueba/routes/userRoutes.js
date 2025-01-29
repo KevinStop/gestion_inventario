@@ -7,6 +7,7 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
 // Rutas públicas
 router.post('/register', userController.registerUser);
 router.post('/login', userController.loginUser);
+router.post('/reset-password', userController.requestPasswordReset);
 
 // Rutas protegidas
 router.get('/me', authenticateToken, userController.getAuthenticatedUser);

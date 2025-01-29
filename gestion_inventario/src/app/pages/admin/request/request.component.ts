@@ -51,7 +51,6 @@ export default class RequestComponent implements OnInit {
     this.requestService.getRequestsByFilter({ isActive: true }).subscribe({
       next: (data) => {
         this.requests = data;
-        console.log('Solicitudes activas:', this.requests);
         this.filterRequests();
         this.isLoading = false;
       },
