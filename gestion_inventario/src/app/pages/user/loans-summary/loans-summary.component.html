@@ -87,14 +87,14 @@
 
           <div>
             <label for="responsible" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-              Responsable:
+              Corresponsal:
             </label>
             <input type="text" id="responsible" formControlName="responsible" name="responsible"
               class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:ring-primary-500 focus:border-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:focus:ring-primary-500 dark:focus:border-primary-500"
               placeholder="Ingrese el nombre del responsable" />
             <p *ngIf="formGroup.get('responsible')?.hasError('required') && formGroup.get('responsible')?.touched"
               class="text-red-500 text-sm">
-              El responsable es obligatorio.
+              El corresponsal es obligatorio.
             </p>
           </div>
 

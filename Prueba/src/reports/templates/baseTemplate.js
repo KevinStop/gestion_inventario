@@ -34,16 +34,39 @@ class BaseReportTemplate {
     return doc;
   }
 
-  // Agregar una tabla con datos
+  // Método auxiliar para calcular la altura del texto
+  calculateTextHeight(text, fontSize, width) {
+    // Convertir a string y manejar valores nulos/undefined
+    const str = text?.toString() || '';
+    // Estimación aproximada: 1 caracter = fontSize/2 pixeles de ancho
+    const charsPerLine = Math.floor((width) / (fontSize / 2));
+    const lines = Math.ceil(str.length / charsPerLine);
+    // Altura mínima de una línea más padding
+    return Math.max(lines * (fontSize * 1.2), fontSize * 1.2);
+  }
+
+  // Método auxiliar para calcular la altura máxima de una fila
+  calculateRowHeight(row, columnWidth, options) {
+    return Math.max(
+      ...row.map(cell => 
+        this.calculateTextHeight(
+          cell, 
+          options.fontSize, 
+          columnWidth - 2 * options.padding
+        )
+      )
+    ) + options.padding * 2;
+  }
+
   addDataTable(doc, headers, data, options = {}) {
     const defaultOptions = {
       width: 495,
-      rowHeight: 20, // Reducido de 25 a 20
+      minRowHeight: 20,
       fontSize: 9,
       headerColor: "#E4E4E4",
       zebraColor: "#F9F9F9",
       textColor: "#000000",
-      padding: 4, // Reducido de 8 a 4
+      padding: 4,
       margin: 50,
     };
 
@@ -51,59 +74,108 @@ class BaseReportTemplate {
     const columnWidth = tableOptions.width / headers.length;
 
     // Posición inicial de la tabla
-    const startY = doc.doc.y;
+    let currentY = doc.doc.y;
 
     // Dibujar encabezados
+    const headerHeight = this.calculateRowHeight(headers, columnWidth, tableOptions);
+    
+    // Dibujar borde superior de la tabla
+    doc.doc
+      .moveTo(tableOptions.margin, currentY)
+      .lineTo(tableOptions.margin + tableOptions.width, currentY)
+      .strokeColor('#000000')
+      .lineWidth(1)
+      .stroke();
+
     headers.forEach((header, i) => {
+      // Dibujar fondo del encabezado
       doc.doc
         .rect(
           tableOptions.margin + i * columnWidth,
-          startY,
+          currentY,
           columnWidth,
-          tableOptions.rowHeight
+          headerHeight
         )
         .fillColor(tableOptions.headerColor)
         .fill();
 
+      // Dibujar texto del encabezado
+      // Texto del encabezado en negrita
       doc.doc
         .fillColor(tableOptions.textColor)
         .fontSize(tableOptions.fontSize)
+        .font('Helvetica-Bold') // Cambiar a fuente en negrita
         .text(
           header,
           tableOptions.margin + i * columnWidth + tableOptions.padding,
-          startY + tableOptions.padding / 2,
+          currentY + tableOptions.padding,
           {
             width: columnWidth - 2 * tableOptions.padding,
-            align: "left",
+            align: "left"
           }
-        );
+        )
+        .font('Helvetica'); // Volver a la fuente normal
     });
 
-    // Actualizar posición Y después de los encabezados
-    doc.doc.y = startY + tableOptions.rowHeight;
+    currentY += headerHeight;
 
     // Dibujar filas
     data.forEach((row, rowIndex) => {
-      // Verificar si necesitamos una nueva página
-      if (doc.doc.y + tableOptions.rowHeight > doc.doc.page.height - 100) {
-        doc.doc.addPage();
-        doc.doc.y = 50;
-      }
+      const rowHeight = Math.max(
+        tableOptions.minRowHeight,
+        this.calculateRowHeight(row, columnWidth, tableOptions)
+      );
 
-      const rowStartY = doc.doc.y;
+      // Verificar si necesitamos una nueva página
+      if (currentY + rowHeight > doc.doc.page.height - 100) {
+        doc.doc.addPage();
+        currentY = 50;
+        
+        // Opcional: Repetir encabezados en la nueva página
+        headers.forEach((header, i) => {
+          doc.doc
+            .rect(
+              tableOptions.margin + i * columnWidth,
+              currentY,
+              columnWidth,
+              headerHeight
+            )
+            .fillColor(tableOptions.headerColor)
+            .fill()
+            .fillColor(tableOptions.textColor)
+            .text(
+              header,
+              tableOptions.margin + i * columnWidth + tableOptions.padding,
+              currentY + tableOptions.padding,
+              {
+                width: columnWidth - 2 * tableOptions.padding,
+                align: "left"
+              }
+            );
+        });
+        currentY += headerHeight;
+      }
 
       // Color de fondo para filas alternas
       if (options.zebra && rowIndex % 2 === 1) {
         doc.doc
           .rect(
             tableOptions.margin,
-            rowStartY,
+            currentY,
             tableOptions.width,
-            tableOptions.rowHeight
+            rowHeight
           )
           .fillColor(tableOptions.zebraColor)
           .fill();
       }
+
+      // Dibujar bordes superiores de las celdas
+      doc.doc
+        .moveTo(tableOptions.margin, currentY)
+        .lineTo(tableOptions.margin + tableOptions.width, currentY)
+        .strokeColor('#000000')
+        .lineWidth(0.5)
+        .stroke();
 
       // Dibujar celdas
       row.forEach((cell, colIndex) => {
@@ -113,18 +185,34 @@ class BaseReportTemplate {
           .text(
             cell?.toString() || "",
             tableOptions.margin + colIndex * columnWidth + tableOptions.padding,
-            rowStartY + tableOptions.padding / 2,
+            currentY + tableOptions.padding,
             {
               width: columnWidth - 2 * tableOptions.padding,
-              align: "left",
+              align: "left"
             }
           );
       });
+      
+      // Dibujar bordes inferiores de las celdas
+      doc.doc
+        .moveTo(tableOptions.margin, currentY + rowHeight)
+        .lineTo(tableOptions.margin + tableOptions.width, currentY + rowHeight)
+        .strokeColor('#000000')
+        .lineWidth(0.5)
+        .stroke();
 
-      doc.doc.y = rowStartY + tableOptions.rowHeight;
+      currentY += rowHeight;
     });
 
-    doc.doc.moveDown(0.5); // Reducido el espacio después de la tabla
+    // Dibujar borde inferior de la tabla
+    doc.doc
+      .moveTo(tableOptions.margin, currentY)
+      .lineTo(tableOptions.margin + tableOptions.width, currentY)
+      .strokeColor('#000000')
+      .lineWidth(1)
+      .stroke();
+
+    doc.doc.y = currentY + 10; // Agregar un pequeño espacio después de la tabla
     return doc;
   }
 

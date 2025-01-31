@@ -1,3 +1,5 @@
+const { PrismaClient } = require('@prisma/client');
+const prisma = new PrismaClient();
 const requestModel = require("../models/requestModel");
 const componentModel = require("../models/componentModel");
 const loanHistoryService = require("../models/loanModel");
@@ -94,37 +96,57 @@ const getRequestById = async (req, res) => {
 const acceptRequest = async (req, res) => {
   const { id } = req.params;
   const requestId = parseInt(id);
-
+  
   if (isNaN(requestId)) {
     return res.status(400).json({ error: "ID de solicitud inválido" });
   }
 
   try {
     const request = await requestModel.getRequestById(requestId);
-
     if (!request) {
       return res.status(404).json({ error: "Solicitud no encontrada" });
     }
 
+    const stockErrors = [];
+
     for (const detail of request.requestDetails) {
       try {
+        // Primero obtenemos el componente
+        const component = await prisma.component.findUnique({
+          where: { id: detail.componentId }
+        });
+
+        // Luego verificamos la disponibilidad
         await componentModel.checkComponentAvailability(
           detail.componentId,
           detail.quantity
         );
       } catch (error) {
-        return res.status(400).json({
-          error: `No hay suficiente cantidad disponible del componente: ${detail.component.name}`,
+        // Si no pudimos obtener el componente o hay error de disponibilidad
+        const component = await prisma.component.findUnique({
+          where: { id: detail.componentId }
+        });
+
+        stockErrors.push({
           componentId: detail.componentId,
+          componentName: detail.component.name,
+          requestedQuantity: detail.quantity,
+          availableQuantity: component ? component.quantity : 0, // Validamos que exista el componente
+          message: `No hay suficiente cantidad disponible del componente: ${detail.component.name}`
         });
       }
     }
 
-    const updatedRequest = await requestModel.acceptRequest(requestId);
-    await EmailService.sendRequestApprovalNotification(
-      updatedRequest.requestId
-    );
+    if (stockErrors.length > 0) {
+      return res.status(400).json({
+        error: "Errores de disponibilidad de stock",
+        stockErrors: stockErrors
+      });
+    }
 
+    const updatedRequest = await requestModel.acceptRequest(requestId);
+    await EmailService.sendRequestApprovalNotification(updatedRequest.requestId);
+    
     return res.status(200).json({
       message: "Solicitud aceptada con éxito.",
       updatedRequest,

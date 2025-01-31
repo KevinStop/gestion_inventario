@@ -44,6 +44,7 @@ export default class RequestComponent implements OnInit {
     this.userService.getUserDetails().subscribe(
       userDetails => this.userRole = userDetails
     );
+    console.log()
   }
 
   fetchActiveRequests(): void {
@@ -148,24 +149,34 @@ export default class RequestComponent implements OnInit {
       return;
     }
   
-    // Confirmación con SweetAlert antes de aceptar la solicitud
     this.sweetalertService.confirm('¿Estás seguro de que deseas aceptar esta solicitud?').then((result) => {
       if (result.isConfirmed) {
-        // Si el usuario confirma, se realiza la acción
         this.requestService.updateRequest(requestId).subscribe({
           next: (response) => {
             this.sweetalertService.success('Solicitud aceptada con éxito');
-            // Actualizar la lista de solicitudes después de aceptar
             this.fetchActiveRequests();
           },
           error: (err) => {
-            this.sweetalertService.error('Error al aceptar la solicitud');
+            if (err.error && err.error.stockErrors) {
+              const errorDetails = err.error.stockErrors.map((error: { componentName: any; requestedQuantity: any; availableQuantity: any; }) => 
+                `• ${error.componentName}:\n` +
+                `  - Cantidad solicitada: ${error.requestedQuantity}\n` +
+                `  - Cantidad disponible: ${error.availableQuantity}`
+              ).join('\n');
+              
+              this.sweetalertService.error(
+                'Stock insuficiente',
+                'Los siguientes componentes no tienen stock suficiente:\n\n' + errorDetails
+              );
+            } else {
+              this.sweetalertService.error('Error al aceptar la solicitud');
+            }
             console.error('Error al aceptar la solicitud:', err);
           },
         });
       }
     });
-  }  
+  }
 
   rejectRequest(requestId: number): void {
     if (!requestId) {
@@ -174,13 +185,10 @@ export default class RequestComponent implements OnInit {
       return;
     }
   
-    // Primera alerta: Solicitar las notas de rechazo
     this.sweetalertService.confirm('Por favor, agregue el motivo del rechazo').then((result) => {
       if (result.isConfirmed) {
-        // Abrir modal para capturar la razón del rechazo
         this.currentRequestId = requestId;
         this.isAdminNotesModalOpen = true;
-        // Agregar una bandera para identificar que es un rechazo
         this.isRejectionAction = true;
       }
     });
@@ -193,20 +201,16 @@ export default class RequestComponent implements OnInit {
       return;
     }
 
-    // Primera alerta: ¿Desea agregar una observación?
     this.sweetalertService.confirm('¿Desea agregar alguna observación?').then((result) => {
       if (result.isConfirmed) {
-        // Abrir modal para capturar la observación
         this.currentRequestId = requestId;
         this.isAdminNotesModalOpen = true;
       } else {
-        // Pasar directamente a la segunda alerta
         this.confirmFinalizeRequest(requestId);
       }
     });
   }
 
-  // Segunda alerta: Confirmar finalización
   private confirmFinalizeRequest(requestId: number): void {
     this.sweetalertService.confirm('¿Estás seguro de que deseas finalizar esta solicitud?').then((result) => {
       if (result.isConfirmed) {

@@ -1,29 +1,28 @@
-<section class="bg-white py-8 antialiased dark:bg-gray-900 md:py-16 rounded-lg">
+<section class="bg-white py-2 antialiased dark:bg-gray-900 md:py-4 rounded-lg">
   <div class="mx-auto max-w-screen-xl px-4 2xl:px-0">
-    <div class="mx-auto max-w-5xl">
-      <!-- Encabezado -->
-      <div class="gap-4 sm:flex sm:items-center sm:justify-between text-center sm:text-left">
-        <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl">Administrar Solicitudes</h2>
+     <!-- Encabezado -->
+     <div class="gap-4 sm:flex sm:items-center sm:justify-between text-center sm:text-left">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white sm:text-2xl p-4">Administrar Solicitudes</h2>
 
-        <!-- Filtro por estado -->
-        <div class="mt-6 sm:mt-0">
-          <label for="filter-status" class="sr-only">Filtrar por estado</label>
-          <select id="filter-status"
-            class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500"
-            (change)="onFilterChange($event)">
-            <option value="todo">Todo</option>
-            <option value="pendiente">Pendiente</option>
-            <option value="prestamo">En préstamo</option>
-            <option value="no_devuelto">No devuelto</option>
-          </select>
-        </div>
+      <!-- Filtro por estado -->
+      <div class="mt-6 sm:mt-0 p-4">
+        <label for="filter-status" class="sr-only">Filtrar por estado</label>
+        <select id="filter-status"
+          class="block w-full rounded-lg border border-gray-300 bg-gray-50 p-2.5 text-sm text-gray-900 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-400 dark:focus:border-primary-500 dark:focus:ring-primary-500"
+          (change)="onFilterChange($event)">
+          <option value="todo">Todo</option>
+          <option value="pendiente">Pendiente</option>
+          <option value="prestamo">En préstamo</option>
+          <option value="no_devuelto">No devuelto</option>
+        </select>
       </div>
-
+    </div>
+    <div class="mx-auto max-w-5x2 dark:bg-gray-800 rounded-lg py-1 px-2">
       <!-- Lista de solicitudes -->
       <div class="mt-6 flow-root sm:mt-8">
         <div class="divide-y divide-gray-200 dark:divide-gray-700">
           <!-- Encabezados -->
-          <div class="grid grid-cols-1 sm:grid-cols-9 text-center items-center py-3">
+          <div class="grid grid-cols-1 sm:grid-cols-9 text-center items-center py-2">
             <div class="col-span-1">
               <span class="text-sm font-medium text-gray-500 dark:text-gray-400">Usuario</span>
             </div>
@@ -52,10 +51,10 @@
 
           <!-- Solicitudes -->
           <div *ngFor="let request of filteredRequests"
-            class="grid grid-cols-1 sm:grid-cols-9 text-center items-center py-4">
+            class="grid grid-cols-1 sm:grid-cols-9 text-center items-center py-2">
             <!-- Usuario -->
             <div class="col-span-1">
-              <span class="text-base font-semibold text-gray-900 dark:text-white">{{ request.user.name }}</span>
+              <span class="text-base font-semibold text-gray-900 dark:text-white">{{ request.user.name }} {{request.user.lastName}}</span>
             </div>
 
             <!-- Responsable -->

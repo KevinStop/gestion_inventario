@@ -5,15 +5,24 @@ import Swal, { SweetAlertOptions } from 'sweetalert2';
   providedIn: 'root'
 })
 export class SweetalertService {
-
   constructor() {}
 
   success(message: string): void {
     Swal.fire(this.getOptions('success', '¡Éxito!', message));
   }
 
-  error(message: string): void {
-    Swal.fire(this.getOptions('error', 'Error', message));
+  // Modificamos el método error para aceptar un título opcional
+  error(message: string, description?: string): void {
+    if (description) {
+      // Si hay descripción, la usamos como HTML para mantener el formato
+      Swal.fire({
+        ...this.getOptions('error', message, ''),
+        html: description.replace(/\n/g, '<br>')
+      });
+    } else {
+      // Si no hay descripción, usamos el comportamiento original
+      Swal.fire(this.getOptions('error', 'Error', message));
+    }
   }
 
   confirm(message: string): Promise<any> {
@@ -26,7 +35,7 @@ export class SweetalertService {
   }
 
   private getOptions(icon: 'success' | 'error' | 'warning', title: string, text: string): SweetAlertOptions {
-    const isDarkMode = document.documentElement.classList.contains('dark'); // Detecta si el tema es oscuro
+    const isDarkMode = document.documentElement.classList.contains('dark');
     return {
       icon,
       title,
