@@ -151,18 +151,18 @@ export default class LoansComponent implements OnInit {
   initializeFilters(reportId: string): void {
     const filterOptions = this.reportService.getFilterOptions(reportId);
     const formGroup: any = {};
-
-    // Agregar campos requeridos con validación
+  
     filterOptions.required?.forEach((filter: string) => {
       formGroup[filter] = ['', [Validators.required]];
     });
-
-    // Agregar campos opcionales
+  
     filterOptions.optional?.forEach((filter: string) => {
       formGroup[filter] = [''];
     });
-
-    this.filterForm = this.fb.group(formGroup);
+  
+    this.filterForm = this.fb.group(formGroup, {
+      validators: this.dateRangeValidator()
+    });
   }
 
   isFieldInvalid(fieldName: string): boolean {
@@ -278,5 +278,26 @@ export default class LoansComponent implements OnInit {
   getReportDescription(): string {
     const selectedReportObj = this.availableReports.find(r => r.id === this.selectedReport);
     return selectedReportObj ? selectedReportObj.description : '';
+  }
+
+  private dateRangeValidator(): any {
+    return (formGroup: FormGroup) => {
+      const startDate = formGroup.get('startDate')?.value;
+      const endDate = formGroup.get('endDate')?.value;
+  
+      if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+  
+        if (end < start) {
+          formGroup.get('endDate')?.setErrors({ dateRange: true });
+          return { dateRange: true };
+        } else {
+          formGroup.get('endDate')?.setErrors(null);
+          return null;
+        }
+      }
+      return null;
+    };
   }
 }

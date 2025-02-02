@@ -18,6 +18,7 @@ import { environment } from '../../../environments/environment';
 export class SidebarComponent implements OnInit {
 
   public apiUrl = environment.apiUrl;
+  public ocsUrl = environment.ocsUrl;
 
   selectedComponentCount: number = 0;
   userRole: string | null = null; 
