@@ -56,9 +56,9 @@
       <div *ngFor="let component of filteredComponents"
         class="rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <div class="h-36 w-full">
-          <img class="mx-auto h-full dark:hidden" [src]="'http://localhost:3000' + component.imageUrl"
+          <img class="mx-auto h-full dark:hidden" [src]="apiUrl + component.imageUrl"
             alt="{{ component.name }}" />
-          <img class="mx-auto hidden h-full dark:block" [src]="'http://localhost:3000' + component.imageUrl"
+          <img class="mx-auto hidden h-full dark:block" [src]="apiUrl + component.imageUrl"
             alt="{{ component.name }}" />
         </div>
         <div class="pt-6">

@@ -9,7 +9,7 @@
         <div class="space-y-4 p-6" *ngFor="let detail of requestDetails?.requestDetails">
           <div class="flex items-center gap-6">
             <a href="#" class="h-14 w-14 shrink-0">
-              <img class="h-full w-full" [src]="'http://localhost:3000' + detail.component.imageUrl"
+              <img class="h-full w-full" [src]="apiUrl + detail.component.imageUrl"
                 alt="{{ detail.component.name }}" alt="Imagen del componente" />
             </a>
 

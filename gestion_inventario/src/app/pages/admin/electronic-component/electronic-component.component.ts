@@ -5,6 +5,7 @@ import { initFlowbite } from 'flowbite';
 import { ComponentService, ComponentResponse  } from '../../../services/component.service';
 import { CategoryService } from '../../../services/category.service';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-electronic-component',
@@ -14,6 +15,8 @@ import { SweetalertService } from '../../../components/alerts/sweet-alert.servic
   styleUrls: ['./electronic-component.component.css'],
 })
 export default class ElectronicComponentComponent implements OnInit {
+
+  public apiUrl = environment.apiUrl;
 
   activeFilters = {
     status: null as string | null,

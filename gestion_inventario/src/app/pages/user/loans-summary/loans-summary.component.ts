@@ -2,13 +2,13 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormGroup, FormBuilder, Validators } from '@angular/forms';
 import { RequestService } from '../../../services/request.service';
-import { UserService } from '../../../services/user.service';
 import { initFlowbite } from 'flowbite';
 import { ImageModule } from 'primeng/image';
 import { RouterLink } from '@angular/router';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-loans-summary',
@@ -19,6 +19,9 @@ import { ToastModule } from 'primeng/toast';
   providers: [MessageService, ConfirmationService],
 })
 export default class LoansSummaryComponent implements OnInit {
+
+  public apiUrl = environment.apiUrl;
+
   formGroup: FormGroup;
   selectedComponents: any[] = [];
   totalAmount: number = 0;

@@ -6,6 +6,7 @@ import { RequestService } from '../../../services/request.service';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 import { UserService } from '../../../services/user.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-request',
@@ -15,6 +16,9 @@ import { UserService } from '../../../services/user.service';
   styleUrl: './request.component.css'
 })
 export default class RequestComponent implements OnInit {
+
+  public apiUrl = environment.apiUrl;
+  
   requests: any[] = [];
   filteredRequests: any[] = [];
   selectedFilter: string = 'todo';
@@ -106,7 +110,7 @@ export default class RequestComponent implements OnInit {
   }
 
   openProof(proofUrl: string): void {
-    const fullUrl = proofUrl.startsWith('http') ? proofUrl : `http://localhost:3000${proofUrl}`;
+    const fullUrl = proofUrl.startsWith('http') ? proofUrl : `${this.apiUrl}${proofUrl}`;
     this.isLoading = true;
 
     if (fullUrl.toLowerCase().endsWith('.pdf')) {
@@ -145,7 +149,6 @@ export default class RequestComponent implements OnInit {
   acceptRequest(requestId: number): void {
     if (!requestId) {
       this.sweetalertService.error('ID de solicitud no válido');
-      console.error('ID de solicitud no válido');
       return;
     }
   
@@ -157,8 +160,14 @@ export default class RequestComponent implements OnInit {
             this.fetchActiveRequests();
           },
           error: (err) => {
-            if (err.error && err.error.stockErrors) {
-              const errorDetails = err.error.stockErrors.map((error: { componentName: any; requestedQuantity: any; availableQuantity: any; }) => 
+            const errorMessage = err.error?.error || 'Error al aceptar la solicitud';
+            if (errorMessage === 'No hay un periodo académico activo. No se puede aceptar la solicitud.') {
+              this.sweetalertService.error(
+                'No hay un periodo académico activo. Por favor, configúrelo antes de continuar.'
+              );
+            } else if (err.error?.stockErrors) {
+              // Mantener la lógica existente para errores de stock
+              const errorDetails = err.error.stockErrors.map((error: any) => 
                 `• ${error.componentName}:\n` +
                 `  - Cantidad solicitada: ${error.requestedQuantity}\n` +
                 `  - Cantidad disponible: ${error.availableQuantity}`
@@ -169,9 +178,8 @@ export default class RequestComponent implements OnInit {
                 'Los siguientes componentes no tienen stock suficiente:\n\n' + errorDetails
               );
             } else {
-              this.sweetalertService.error('Error al aceptar la solicitud');
+              this.sweetalertService.error(errorMessage);
             }
-            console.error('Error al aceptar la solicitud:', err);
           },
         });
       }
@@ -217,11 +225,17 @@ export default class RequestComponent implements OnInit {
         this.requestService.finalizeRequest(requestId, this.adminNotes).subscribe({
           next: (response) => {
             this.sweetalertService.success('Solicitud finalizada con éxito');
-            this.fetchActiveRequests(); // Actualizar lista
+            this.fetchActiveRequests();
           },
           error: (err) => {
-            this.sweetalertService.error('Error al finalizar la solicitud');
-            console.error('Error al finalizar la solicitud:', err);
+            const errorMessage = err.error?.error || 'Error al finalizar la solicitud';
+            if (errorMessage.includes('No hay un periodo académico activo')) {
+              this.sweetalertService.error(
+                'No hay un periodo académico activo. Por favor, configúrelo antes de continuar.'
+              );
+            } else {
+              this.sweetalertService.error(errorMessage);
+            }
           },
         });
       }
@@ -259,16 +273,22 @@ export default class RequestComponent implements OnInit {
   cancelRequest(id: number): void {
     this.sweetalertService.confirm('¿Estás seguro de que deseas cancelar esta solicitud?').then((result) => {
       if (result.isConfirmed) {
-        this.requestService.deleteRequest(id).subscribe(
-          () => {
+        this.requestService.deleteRequest(id).subscribe({
+          next: () => {
             this.sweetalertService.success('Solicitud cancelada exitosamente.');
             this.fetchActiveRequests();
           },
-          (error) => {
-            console.error('Error al cancelar la solicitud:', error);
-            this.sweetalertService.error('Hubo un error al cancelar la solicitud. Intente nuevamente.');
+          error: (error) => {
+            const errorMessage = error.error?.error || 'Hubo un error al cancelar la solicitud.';
+            if (errorMessage === 'No hay un periodo académico activo.') {
+              this.sweetalertService.error(
+                'No hay un periodo académico activo. Por favor, configúrelo antes de continuar.'
+              );
+            } else {
+              this.sweetalertService.error(errorMessage);
+            }
           }
-        );
+        });
       }
     });
   }
@@ -321,12 +341,17 @@ export default class RequestComponent implements OnInit {
             this.fetchActiveRequests();
           },
           error: (err) => {
-            this.sweetalertService.error('Error al rechazar la solicitud');
-            console.error('Error al rechazar la solicitud:', err);
-          },
+            const errorMessage = err.error?.error || 'Error al rechazar la solicitud';
+            if (errorMessage === 'No hay un periodo académico activo.') {
+              this.sweetalertService.error(
+                'No hay un periodo académico activo. Por favor, configúrelo antes de continuar.'
+              );
+            } else {
+              this.sweetalertService.error(errorMessage);
+            }
+          }
         });
       }
-      // Limpiar la bandera de rechazo
       this.isRejectionAction = false;
       this.adminNotes = '';
     });

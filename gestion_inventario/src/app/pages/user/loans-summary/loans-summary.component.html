@@ -24,7 +24,7 @@
               <tr *ngFor="let component of selectedComponents">
                 <td class="whitespace-nowrap py-4 md:w-[384px]">
                   <div class="flex items-center gap-4">
-                    <img class="h-8 w-auto mr-3" [src]="'http://localhost:3000' + component.imageUrl"
+                    <img class="h-8 w-auto mr-3" [src]="apiUrl + component.imageUrl"
                       alt="{{ component.name }}" />
                     <a class="hover:underline">{{ component.name }}</a>
                   </div>

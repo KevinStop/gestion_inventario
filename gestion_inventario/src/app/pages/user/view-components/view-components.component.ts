@@ -8,6 +8,7 @@ import { CategoryService } from '../../../services/category.service';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
 import { ConfirmationService, MessageService } from 'primeng/api';
 import { ToastModule } from 'primeng/toast';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-view-components',
@@ -18,6 +19,9 @@ import { ToastModule } from 'primeng/toast';
   providers: [MessageService, ConfirmationService],
 })
 export default class ViewComponentsComponent implements OnInit {
+
+  public apiUrl = environment.apiUrl;
+
   components: ComponentResponse[] = [];
   selectedQuantities: { [key: number]: number } = {};
   selectedCategories: number[] = [];

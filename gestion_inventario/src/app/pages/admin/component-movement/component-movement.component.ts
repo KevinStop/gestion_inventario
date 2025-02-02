@@ -6,6 +6,7 @@ import { ComponentService, ComponentResponse } from '../../../services/component
 import { ComponentMovementService } from '../../../services/component-movement.service';
 import { CategoryService } from '../../../services/category.service';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-component-movement',
@@ -15,6 +16,8 @@ import { SweetalertService } from '../../../components/alerts/sweet-alert.servic
   styleUrl: './component-movement.component.css'
 })
 export default class ComponentMovementComponent implements OnInit, OnDestroy {
+
+  public apiUrl = environment.apiUrl;
 
   components: ComponentResponse[] = [];
   categories: any[] = [];

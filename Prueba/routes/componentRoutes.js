@@ -6,7 +6,6 @@ const { authenticateToken, authorizeRoles } = require('../middleware/authMiddlew
 
 // Ruta pública (no necesita autenticación ni autorización)
 router.get('/filter', componentController.filterComponentsByCategories);
-router.get('/count', componentController.getComponentCount);
 router.get('/:id', componentController.getComponentById);
 router.get('/', componentController.getAllComponents);
 

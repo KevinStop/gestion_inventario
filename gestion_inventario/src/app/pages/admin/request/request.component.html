@@ -85,7 +85,7 @@
 
             <!-- Comprobante -->
             <div class="col-span-1 text-center">
-              <button (click)="openProof('http://localhost:3000' + request.fileUrl)" type="button"
+              <button (click)="openProof(apiUrl + request.fileUrl)" type="button"
                 class="rounded-lg p-2 text-gray-800 hover:text-primary-700 focus:outline-none focus:ring-4 focus:ring-gray-200 dark:text-white dark:hover:text-primary-300 dark:focus:ring-gray-700">
                 <svg class="w-6 h-6" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
                   viewBox="0 0 24 24">
@@ -159,7 +159,7 @@
       <!-- Componente 1 -->
       <div class="flex items-center gap-6">
         <a class="h-14 w-14 shrink-0">
-          <img class="h-full w-full rounded-lg" [src]="'http://localhost:3000'+detail.imageUrl" [alt]="detail.name" />
+          <img class="h-full w-full rounded-lg" [src]="apiUrl +detail.imageUrl" [alt]="detail.name" />
         </a>
         <div class="min-w-0 flex-1">
           <p class="font-medium text-gray-900 dark:text-white">

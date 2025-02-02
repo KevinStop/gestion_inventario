@@ -53,7 +53,6 @@ app.use(
 
 const componentRoutes = require('./routes/componentRoutes');
 const requestRoutes = require('./routes/requestRoutes');
-const requestDetailRoutes = require('./routes/requestDetailRoutes');
 const userRoutes = require('./routes/userRoutes');
 const loanRoutes = require('./routes/loanRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
@@ -65,7 +64,6 @@ const reportRoutes = require('./routes/reportRoutes');
 app.use('/components', componentRoutes);
 app.use('/users', userRoutes);
 app.use('/requests', requestRoutes);
-app.use('/request-details', requestDetailRoutes);
 app.use('/loans', loanRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/component-movements', componentMovementRoutes);

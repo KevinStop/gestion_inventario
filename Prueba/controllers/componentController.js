@@ -179,16 +179,6 @@ const filterComponentsByCategories = async (req, res) => {
   }
 };
 
-// Obtener el conteo total de componentes
-const getComponentCount = async (req, res) => {
-  try {
-    const count = await componentModel.getComponentCount();
-    res.status(200).json({ count });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
 
 module.exports = {
   createComponentWithMovement,
@@ -197,5 +187,4 @@ module.exports = {
   updateComponent,
   deleteComponent,
   filterComponentsByCategories,
-  getComponentCount,
 };

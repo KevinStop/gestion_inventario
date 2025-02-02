@@ -13,7 +13,7 @@ const createComponentWithMovement = async (data) => {
           where: { isActive: true },
         });
         if (!activePeriod) {
-          throw new Error('PERIODO_ACTIVO_NO_ENCONTRADO');
+          throw new Error('No hay un período académico activo');
         }
         activeAcademicPeriodId = activePeriod.id;
       }
@@ -59,8 +59,7 @@ const createComponentWithMovement = async (data) => {
       return { component, componentMovement };
     });
   } catch (error) {
-    console.error('Error al crear el componente con movimiento:', error.message);
-    throw new Error('Error al crear el componente con movimiento');
+    throw error;
   }
 };
 
@@ -152,7 +151,7 @@ const updateComponent = async (id, data) => {
 const deleteComponent = async (id) => {
   try {
     return await prisma.$transaction(async (tx) => {
-      // Verificar si hay préstamos activos
+      // 1. Verificar préstamos activos
       const activeLoans = await tx.loanHistory.findMany({
         where: { 
           componentId: Number(id),
@@ -161,22 +160,37 @@ const deleteComponent = async (id) => {
       });
 
       if (activeLoans.length > 0) {
-        throw new Error('No se puede eliminar un componente con préstamos activos');
+        throw new Error('PRESTAMOS_ACTIVOS');
       }
 
-      // Primero finalizar cualquier préstamo pendiente
-      await tx.loanHistory.updateMany({
-        where: { 
+      // 2. Verificar solicitudes pendientes
+      const pendingRequests = await tx.requestDetail.findMany({
+        where: {
           componentId: Number(id),
-          endDate: null
-        },
-        data: {
-          status: 'devuelto',
-          endDate: new Date()
+          request: {
+            status: 'pendiente'
+          }
         }
       });
 
-      // Ahora sí, eliminar en orden correcto
+      if (pendingRequests.length > 0) {
+        throw new Error('SOLICITUDES_PENDIENTES');
+      }
+
+      // 3. Verificar préstamos en estado prestamo
+      const activeLoansInProgress = await tx.loanHistory.findMany({
+        where: { 
+          componentId: Number(id),
+          status: 'devuelto',
+          endDate: null
+        }
+      });
+
+      if (activeLoansInProgress.length > 0) {
+        throw new Error('PRESTAMOS_EN_CURSO');
+      }
+
+      // Si pasa todas las verificaciones, proceder con la eliminación
       await tx.requestDetail.deleteMany({
         where: { componentId: Number(id) }
       });
@@ -196,7 +210,22 @@ const deleteComponent = async (id) => {
       return deletedComponent;
     });
   } catch (error) {
-    throw new Error(`Error al eliminar el componente: ${error.message}`);
+    // Manejar los diferentes tipos de errores
+    let errorMessage;
+    switch (error.message) {
+      case 'PRESTAMOS_ACTIVOS':
+        errorMessage = 'No se puede eliminar el componente porque tiene préstamos activos sin devolver';
+        break;
+      case 'SOLICITUDES_PENDIENTES':
+        errorMessage = 'No se puede eliminar el componente porque está incluido en solicitudes pendientes';
+        break;
+      case 'PRESTAMOS_EN_CURSO':
+        errorMessage = 'No se puede eliminar el componente porque tiene préstamos en curso';
+        break;
+      default:
+        errorMessage = `Error al eliminar el componente: ${error.message}`;
+    }
+    throw new Error(errorMessage);
   }
 };
 
@@ -246,17 +275,6 @@ const filterComponentsByCategories = async (categoryIds) => {
   } catch (error) {
     console.error('Error al filtrar los componentes:', error);
     throw new Error('Error al filtrar los componentes');
-  }
-};
-
-// Obtener el conteo total de componentes
-const getComponentCount = async () => {
-  try {
-    const count = await prisma.component.count();
-    return count;
-  } catch (error) {
-    console.error('Error al obtener el conteo de componentes:', error.message);
-    throw new Error('Error al obtener el conteo de componentes');
   }
 };
 
@@ -343,7 +361,6 @@ module.exports = {
   deleteComponent,
   searchComponentsByName,
   filterComponentsByCategories,
-  getComponentCount,
   calculateAvailableQuantity,
   checkComponentAvailability
 };

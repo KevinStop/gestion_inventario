@@ -6,6 +6,7 @@ import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { Router } from '@angular/router';
 import { Image } from 'primeng/image';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-sidebar',
@@ -16,12 +17,14 @@ import { Image } from 'primeng/image';
 })
 export class SidebarComponent implements OnInit {
 
+  public apiUrl = environment.apiUrl;
+
   selectedComponentCount: number = 0;
-  userRole: string | null = null; // Rol del usuario
+  userRole: string | null = null; 
   user: any = {
     name: '',
     email: '',
-    imageUrl: '', // Cambiado para reflejar el campo del backend
+    imageUrl: '', 
   };
 
   constructor(private userService: UserService, private router: Router, private requestService: RequestService) {}
@@ -72,7 +75,7 @@ export class SidebarComponent implements OnInit {
         this.user = {
           name: data.name || 'No disponible',
           email: data.email || 'No disponible',
-          imageUrl: data.imageUrl || 'http://localhost:3000/assets/default-user.png', 
+          imageUrl: data.imageUrl || `${this.apiUrl}/assets/default-user.png`, 
         };
       },
       error: (err) => {

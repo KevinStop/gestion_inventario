@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Image } from 'primeng/image';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-user-profile',
@@ -13,6 +14,9 @@ import { SweetalertService } from '../../../components/alerts/sweet-alert.servic
   styleUrls: ['./user-profile.component.css'],
 })
 export default class UserProfileComponent implements OnInit {
+
+  public apiUrl = environment.apiUrl;
+
   user: any = {
     userId: '',
     name: '',
@@ -84,7 +88,7 @@ export default class UserProfileComponent implements OnInit {
           userId: data.id || data.userId, 
           name: data.name || 'No disponible',
           email: data.email || 'No disponible',
-          imageUrl: data.imageUrl || 'http://localhost:3000/assets/default-user.png',
+          imageUrl: data.imageUrl || `${this.apiUrl}/assets/default-user.png`,
         };
         this.updatedData.name = this.user.name;
         this.updatedData.email = this.user.email;

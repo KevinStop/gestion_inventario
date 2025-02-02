@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RequestService } from '../../../services/request.service';
 import { SweetalertService } from '../../../components/alerts/sweet-alert.service';
+import { environment } from '../../../../environments/environment';
 
 @Component({
   selector: 'app-request-details',
@@ -13,6 +14,9 @@ import { SweetalertService } from '../../../components/alerts/sweet-alert.servic
   styleUrls: ['./request-details.component.css'],
 })
 export default class RequestDetailsComponent implements OnInit {
+
+  public apiUrl = environment.apiUrl;
+
   requestDetails: any | null = null;
 
   constructor(

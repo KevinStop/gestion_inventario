@@ -186,8 +186,7 @@ const acceptRequest = async (requestId) => {
       }
     ); 
   } catch (error) {
-    console.error("Error en acceptRequest:", error.message);
-    throw new Error("Error al aceptar la solicitud: " + error.message);
+    throw error;
   }
 };
 
@@ -272,8 +271,7 @@ const deleteRequest = async (requestId, userId, role) => {
 
     return result;
   } catch (error) {
-    console.error("Error en deleteRequest:", error.message);
-    throw new Error("Error al eliminar la solicitud: " + error.message);
+    throw error;
   }
 };
 
@@ -363,8 +361,7 @@ const finalizeRequest = async (requestId, adminNotes = null) => {
 
     return result;
   } catch (error) {
-    console.error("Error en finalizeRequest:", error.message);
-    throw new Error("Error al finalizar la solicitud: " + error.message);
+    throw error;
   }
 };
 
@@ -432,8 +429,7 @@ const updateReturnDate = async (requestId, userId, role, newReturnDate) => {
       return updatedRequest;
     });
   } catch (error) {
-    console.error("Error en updateReturnDate:", error.message);
-    throw new Error("Error al actualizar la fecha de retorno: " + error.message);
+    throw error;
   }
 };
 

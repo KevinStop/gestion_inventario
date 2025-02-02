@@ -122,10 +122,4 @@ export class ComponentService {
       withCredentials: true 
     });
   }
-
-  getComponentCount(): Observable<number> {
-    return this.http.get<number>(`${this.apiUrl}/count`, {
-      withCredentials: true
-    });
-  }
 }
