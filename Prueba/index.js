@@ -5,6 +5,8 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const app = express();
 const cors = require('cors');
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./config/swaggerConfig');
 app.use(cookieParser());
 app.use(express.json());
 
@@ -54,7 +56,6 @@ app.use(
 const componentRoutes = require('./routes/componentRoutes');
 const requestRoutes = require('./routes/requestRoutes');
 const userRoutes = require('./routes/userRoutes');
-const loanRoutes = require('./routes/loanRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const componentMovementRoutes = require('./routes/componentMovementRoutes');
 const academicPeriodRoutes = require('./routes/academicPeriodRoutes');
@@ -64,11 +65,12 @@ const reportRoutes = require('./routes/reportRoutes');
 app.use('/components', componentRoutes);
 app.use('/users', userRoutes);
 app.use('/requests', requestRoutes);
-app.use('/loans', loanRoutes);
 app.use('/categories', categoryRoutes);
 app.use('/component-movements', componentMovementRoutes);
 app.use('/academic-periods', academicPeriodRoutes);
 app.use('/reports', reportRoutes);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 app.listen(PORT, () => {
   console.log(`Servidor escuchando en el puerto ${PORT}`);

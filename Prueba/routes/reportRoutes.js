@@ -89,8 +89,6 @@ router.get(
 );
 
 // Ruta para vista previa de préstamos no devueltos
-router.get('/not-returned/preview',
-  reportController.getNotReturnedPreview
-);
+router.get("/not-returned/preview", reportController.getNotReturnedPreview);
 
 module.exports = router;

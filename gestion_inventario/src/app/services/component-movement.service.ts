@@ -13,7 +13,7 @@ export class ComponentMovementService {
   constructor(private http: HttpClient) {}
 
   createComponentMovement(movement: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, movement);
+    return this.http.post<any>(this.apiUrl, movement, { withCredentials: true });
   }
 
   getComponentMovements(filters: any = {}): Observable<any> {
@@ -32,6 +32,6 @@ export class ComponentMovementService {
       params.append('endDate', filters.endDate);
     }
 
-    return this.http.get<any>(`${this.apiUrl}?${params.toString()}`);
+    return this.http.get<any>(`${this.apiUrl}?${params.toString()}`, { withCredentials: true });
   }
 }

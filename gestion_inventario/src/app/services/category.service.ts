@@ -14,26 +14,26 @@ export class CategoryService {
 
   // Obtener todas las categorías
   getCategories(): Observable<any> {
-    return this.http.get<any>(this.apiUrl);
+    return this.http.get<any>(this.apiUrl, { withCredentials: true });
   }
 
   // Obtener una categoría por ID
   getCategoryById(id: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+    return this.http.get<any>(`${this.apiUrl}/${id}`, { withCredentials: true });
   }
 
   // Crear una nueva categoría
   createCategory(category: any): Observable<any> {
-    return this.http.post<any>(this.apiUrl, category);
+    return this.http.post<any>(this.apiUrl, category, { withCredentials: true });
   }
 
   // Actualizar una categoría
   updateCategory(id: number, category: any): Observable<any> {
-    return this.http.put<any>(`${this.apiUrl}/${id}`, category);
+    return this.http.put<any>(`${this.apiUrl}/${id}`, category, { withCredentials: true });
   }
 
   // Eliminar una categoría
   deleteCategory(id: number): Observable<any> {
-    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+    return this.http.delete<any>(`${this.apiUrl}/${id}`, { withCredentials: true });
   }
 }

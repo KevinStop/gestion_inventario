@@ -39,12 +39,12 @@ export class UserService {
   logout(): void {
     this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true }).subscribe({
       next: () => {
-        localStorage.removeItem('selectedComponents'); // Limpiar los componentes seleccionados
-        this.router.navigate(['/']); // Redirigir al login
+        localStorage.removeItem('selectedComponents'); 
+        this.router.navigate(['/']); 
       },
       error: (err) => {
         console.error('Error al cerrar sesión:', err);
-        localStorage.removeItem('selectedComponents'); // Asegurarse de limpiar aunque haya un error
+        localStorage.removeItem('selectedComponents'); 
       },
     });
   }
@@ -60,7 +60,7 @@ export class UserService {
       map((response) => response.remainingTime),
       catchError(() => {
         console.error('Error al obtener el tiempo restante de la sesión.');
-        return of(0); // Asumimos que la sesión ha expirado si hay un error
+        return of(0); 
       })
     );
   }
@@ -69,9 +69,9 @@ export class UserService {
   checkSessionExpiration(): void {
     this.getRemainingTime().subscribe((remainingTime: number) => {
       if (remainingTime <= this.expirationWarningTime) {
-        this.sessionExpiringSubject.next(true); // Notificar al componente
+        this.sessionExpiringSubject.next(true); 
       } else {
-        this.sessionExpiringSubject.next(false); // Resetear advertencias si la sesión tiene tiempo suficiente
+        this.sessionExpiringSubject.next(false);
       }
     });
   }

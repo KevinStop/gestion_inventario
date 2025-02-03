@@ -20,7 +20,7 @@ import { environment } from '../../../../environments/environment';
 })
 export default class ViewComponentsComponent implements OnInit {
 
-  public apiUrl = environment.apiUrl;
+  public apiUrls = environment.apiUrl;
 
   components: ComponentResponse[] = [];
   selectedQuantities: { [key: number]: number } = {};
@@ -58,13 +58,12 @@ export default class ViewComponentsComponent implements OnInit {
 
   getComponents(): void {
     this.componentService.getComponents(true).subscribe(
-      (response) => {        
+      (response) => {
         this.components = response.components.filter(component => {
           const isValid = component.isActive && component.availableQuantity > 0;
           
           return isValid;
         });
-        
         this.filteredComponents = [...this.components];
       },
       (error) => {
